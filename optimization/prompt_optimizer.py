@@ -85,27 +85,56 @@ class PromptOptimizer:
             with open(self.prompt_history_file, 'r') as f:
                 content = f.read()
             
-            # Extract prompt-score pairs using regex
-            pattern = re.compile(
+            # Try enhanced format first
+            enhanced_pattern = re.compile(
+                r'<PROMPT>\n<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n'
+                r'<OVERALL_ACCURACY>\n(.*?)\n</OVERALL_ACCURACY>\n'
+                r'<QUERY_BREAKDOWN>\n(.*?)\n</QUERY_BREAKDOWN>\n'
+                r'<FAILING_EXAMPLES>\n(.*?)\n</FAILING_EXAMPLES>\n</PROMPT>', 
+                re.DOTALL
+            )
+            enhanced_matches = enhanced_pattern.findall(content)
+            
+            if enhanced_matches:
+                # Sort by overall accuracy (descending)
+                sorted_prompts = sorted(enhanced_matches, key=lambda x: float(x[1]), reverse=True)
+                
+                # Format enhanced data for metaprompt
+                formatted_history = ""
+                for prompt, accuracy, breakdown, examples in sorted_prompts:
+                    formatted_history += (
+                        f"<PROMPT>\n<PROMPT_TEXT>\n{prompt.strip()}\n</PROMPT_TEXT>\n"
+                        f"<OVERALL_ACCURACY>\n{float(accuracy):.2%}\n</OVERALL_ACCURACY>\n"
+                        f"<QUERY_PERFORMANCE>\n{breakdown.strip()}\n</QUERY_PERFORMANCE>\n"
+                        f"<CRITICAL_FAILURES>\n{examples.strip()}\n</CRITICAL_FAILURES>\n"
+                        f"</PROMPT>\n\n"
+                    )
+                return formatted_history
+            
+            # Fallback to old format for backward compatibility
+            old_pattern = re.compile(
                 r'<PROMPT>\n<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n<ACCURACY>\n(.*?)\n</ACCURACY>\n</PROMPT>', 
                 re.DOTALL
             )
-            matches = pattern.findall(content)
+            old_matches = old_pattern.findall(content)
             
-            if not matches:
-                return "No history yet."
+            if old_matches:
+                # Sort by accuracy (descending)
+                sorted_prompts = sorted(old_matches, key=lambda x: float(x[1]), reverse=True)
+                
+                # Reformat for metaprompt (old format)
+                sorted_prompts_string = ""
+                for prompt, accuracy in sorted_prompts:
+                    sorted_prompts_string += (
+                        f"<PROMPT>\n<PROMPT_TEXT>\n{prompt.strip()}\n</PROMPT_TEXT>\n"
+                        f"<OVERALL_ACCURACY>\n{float(accuracy):.2%}\n</OVERALL_ACCURACY>\n"
+                        f"<QUERY_PERFORMANCE>\nNo query-level data available (old format)\n</QUERY_PERFORMANCE>\n"
+                        f"<CRITICAL_FAILURES>\nNo failure data available (old format)\n</CRITICAL_FAILURES>\n"
+                        f"</PROMPT>\n\n"
+                    )
+                return sorted_prompts_string
             
-            # Sort by accuracy (descending)
-            sorted_prompts = sorted(matches, key=lambda x: float(x[1]), reverse=True)
-            
-            # Reformat for metaprompt
-            sorted_prompts_string = ""
-            for prompt, accuracy in sorted_prompts:
-                sorted_prompts_string += (
-                    f"<PROMPT>\n<PROMPT_TEXT>\n{prompt.strip()}\n</PROMPT_TEXT>\n"
-                    f"<ACCURACY>\n{float(accuracy):.2%}\n</ACCURACY>\n</PROMPT>\n\n"
-                )
-            return sorted_prompts_string
+            return "No history yet."
             
         except FileNotFoundError:
             return "No history yet."
@@ -241,6 +270,62 @@ class PromptOptimizer:
         with open(os.path.join(iteration_folder, 'summary.json'), 'w') as f:
             json.dump(summary, f, indent=2)
 
+    def _calculate_query_breakdown(self, details: Dict) -> str:
+        """Extract query-level performance from evaluation details."""
+        # Group results by original query
+        query_results = {}
+        for result in details['results']:
+            query = result['query']
+            if query not in query_results:
+                query_results[query] = {'passed': 0, 'total': 0}
+            
+            query_results[query]['total'] += 1
+            if result['comparison']['status'] == 'PASS':
+                query_results[query]['passed'] += 1
+        
+        # Format breakdown
+        breakdown_lines = []
+        for query, stats in query_results.items():
+            accuracy = stats['passed'] / stats['total'] if stats['total'] > 0 else 0
+            status = ""
+            if accuracy < 0.6:
+                status = " - CRITICAL"
+            elif accuracy < 0.8:
+                status = " - WEAK"
+            
+            breakdown_lines.append(
+                f"{query}: {stats['passed']}/{stats['total']} ({accuracy:.0%}){status}"
+            )
+        
+        return "\n".join(breakdown_lines)
+
+    def _extract_failing_examples(self, details: Dict) -> str:
+        """Extract specific failing examples for the metaprompt."""
+        failing_examples = []
+        
+        for result in details['results']:
+            if result['comparison']['status'] == 'FAIL':
+                query_text = result.get('restatement_text') or result['query']
+                expected = result['comparison'].get('expected', {})
+                actual = result['comparison'].get('actual', {})
+                
+                expected_desc = "None"
+                if expected:
+                    expected_desc = f"{expected.get('name', 'None')}"
+                    if expected.get('args'):
+                        # Format args nicely
+                        args_str = ", ".join([f"{k}='{v}'" for k, v in expected['args'].items()])
+                        expected_desc += f"({args_str})"
+                
+                actual_desc = actual.get('name', 'None') if actual else 'None'
+                
+                failing_examples.append(
+                    f'"{query_text}" → Expected: {expected_desc}, Got: {actual_desc}'
+                )
+        
+        # Return top 3 most informative failures
+        return "\n".join(failing_examples[:3]) if failing_examples else "No specific failures to report"
+
     async def run(self) -> Tuple[str, float]:
         """
         Executes the main optimization loop.
@@ -296,11 +381,18 @@ class PromptOptimizer:
                 # Save iteration results
                 await self._save_iteration_results(i, current_prompt, score, details)
 
-                # Update history file
+                # Calculate query-level breakdown and failing examples
+                query_breakdown = self._calculate_query_breakdown(details)
+                failing_examples = self._extract_failing_examples(details)
+                
+                # Update history file with enhanced format
                 async with aiofiles.open(self.prompt_history_file, 'a') as f:
                     await f.write(
                         f"<PROMPT>\n<PROMPT_TEXT>\n{current_prompt}\n</PROMPT_TEXT>\n"
-                        f"<ACCURACY>\n{score}\n</ACCURACY>\n</PROMPT>\n\n"
+                        f"<OVERALL_ACCURACY>\n{score}\n</OVERALL_ACCURACY>\n"
+                        f"<QUERY_BREAKDOWN>\n{query_breakdown}\n</QUERY_BREAKDOWN>\n"
+                        f"<FAILING_EXAMPLES>\n{failing_examples}\n</FAILING_EXAMPLES>\n"
+                        f"</PROMPT>\n\n"
                     )
 
                 # Check if this is a new best

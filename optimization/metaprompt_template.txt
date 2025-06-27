@@ -1,9 +1,9 @@
-You are an expert in prompt engineering for large language models, specializing in voice-based AI assistants that use tools and function calling. Your task is to create a new, improved system prompt that will guide a voice assistant to choose the correct tool for a user's spoken request.
+You are an expert in prompt engineering for large language models, specializing in voice-based AI assistants that use tools and function calling. Your task is to create a new, improved system prompt that will address specific weaknesses identified in previous prompts.
 
 ## CONTEXT
-I have a list of system prompts that I have already tested. For each prompt, I have an accuracy score that measures how often the voice assistant chose the correct backend function. The prompts are ranked from highest accuracy to lowest.
+I have tested several system prompts and identified their overall accuracy plus specific query-level performance patterns. The prompts below are ranked from highest accuracy to lowest, with detailed breakdowns of their strengths and critical weaknesses.
 
-## PROMPT_HISTORY
+## PROMPT_HISTORY_WITH_DETAILED_ANALYSIS
 {prompt_scores}
 
 ## TASK_DESCRIPTION
@@ -13,21 +13,19 @@ The voice assistant has two available tools:
    - 'live-agent-request': Used when a user explicitly asks to speak to a person.
    - 'vulnerable-user': Used when a user sounds distressed, anxious, or explicitly mentions a sensitive situation.
 
-Here is an example of a test case the assistant was evaluated on:
+## OPTIMIZATION_FOCUS
+Based on the prompt history above, pay special attention to:
+1. **Query types marked as CRITICAL or WEAK** - These need the most improvement
+2. **Specific failing examples** - These show exact patterns the current prompts struggle with
+3. **Performance gaps** - Where some queries work well but others fail
 
-### EXAMPLE
-**Spoken Query Text:**
-"I'm super anxious and don't know what to do"
-
-**Expected Function Call:**
-`escalate_to_human_agent(reason='vulnerable-user')`
+Your new prompt should specifically address the failure patterns while maintaining the strengths shown in high-performing areas.
 
 ## INSTRUCTIONS
-Based on the provided prompt history and the task description, write a new, superior system prompt.
-
-Follow these rules strictly:
-1. **Analyze and Learn:** In your reasoning, explicitly state what patterns, keywords, or structures from the high-accuracy prompts seem effective, and what from the low-accuracy prompts should be avoided.
-2. **Be Creative:** Do not just slightly rephrase the best prompt. Synthesize the best ideas and introduce new concepts or structures. Consider instruction clarity, ordering, and how to handle ambiguity.
-3. **No Placeholders:** The prompt must be a complete, self-contained set of instructions. Do not use placeholders or variables.
-4. **Think Step-by-Step:** Before writing the final prompt, provide your analysis and step-by-step thinking process.
-5. **Final Output Format:** Wrap your final, complete, and new system prompt in double square brackets `[[...]]`. The text inside the brackets must be the prompt itself, with no extra commentary or markdown.
+1. **Analyze Patterns:** In your reasoning, identify what specific query types or phrasings consistently fail across prompts, and what makes the successful cases work.
+2. **Target Specific Weaknesses:** Focus on the CRITICAL and WEAK query categories. Address the exact failure patterns shown in the examples.
+3. **Learn from Successes:** Understand what makes certain queries consistently successful and apply those principles to failing areas.
+4. **Be Specific:** Include explicit guidance for handling the problematic phrasings and edge cases identified in the failures.
+5. **Maintain Balance:** Don't break what's working well - ensure your improvements don't regress successful query types.
+6. **Think Step-by-Step:** Before writing the final prompt, provide your analysis of the key issues and your strategy to address them.
+7. **Final Output Format:** Wrap your final, complete, and new system prompt in double square brackets `[[...]]`. The text inside the brackets must be the prompt itself, with no extra commentary or markdown.

@@ -1,0 +1,32 @@
+{
+    "queries": [
+      {
+          "query": "Tell me a joke",
+          "trigger_function": false
+      },
+      {
+        "query": "How do I buy stocks on Cymbal?",
+        "trigger_function": true,
+        "function_name": "get_chatbot_response",
+        "function_args": {
+          "query": "How do I buy stocks on Cymbal?"
+        }
+      },
+      {
+        "query": "I need to speak to a human agent please",
+        "trigger_function": true,
+        "function_name": "escalate_to_human_agent",
+        "function_args": {
+          "reason": "live-agent-request"
+        }
+      },
+      {
+        "query": "I'm super anxious and don't know what to do",
+        "trigger_function": true,
+        "function_name": "escalate_to_human_agent",
+        "function_args": {
+          "reason": "vulnerable-user"
+        }
+      }
+    ]
+  } 

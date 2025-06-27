@@ -33,7 +33,8 @@ class PromptOptimizer:
                  num_iterations: int, 
                  starting_prompt: str, 
                  evaluator, # Changed from AudioFunctionCallEvaluator to avoid import issues
-                 metaprompt_path: str = "optimization/metaprompt_template.txt"):
+                 metaprompt_path: str = "optimization/metaprompt_template.txt",
+                 early_stopping_threshold: float = None):
         """
         Initialize the prompt optimizer.
         
@@ -42,11 +43,13 @@ class PromptOptimizer:
             starting_prompt: Initial prompt to start optimization from
             evaluator: AudioFunctionCallEvaluator instance for prompt evaluation
             metaprompt_path: Path to the metaprompt template file
+            early_stopping_threshold: If set, stop optimization when accuracy exceeds this threshold (0.0-1.0)
         """
         self.num_iterations = num_iterations
         self.starting_prompt = starting_prompt
         self.evaluator = evaluator
         self.metaprompt_path = metaprompt_path
+        self.early_stopping_threshold = early_stopping_threshold
 
         # Validate environment variables
         project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
@@ -66,6 +69,8 @@ class PromptOptimizer:
         logger.info(f"Optimizer initialized. Results will be saved in: {self.run_folder}")
         logger.info(f"Using generation model: {PROMPT_GENERATION_MODEL}")
         logger.info(f"Running {num_iterations} optimization iterations")
+        if early_stopping_threshold is not None:
+            logger.info(f"Early stopping enabled: will stop if accuracy exceeds {early_stopping_threshold:.2%}")
 
     def _create_run_folder(self) -> str:
         """Create a timestamped run folder for this optimization session."""
@@ -395,7 +400,7 @@ class PromptOptimizer:
                         f"</PROMPT>\n\n"
                     )
 
-                # Check if this is a new best
+                                # Check if this is a new best
                 if score > self.best_prompt["score"]:
                     improvement = score - self.best_prompt["score"]
                     logger.info(f"🎉 NEW BEST SCORE! {score:.2%} (improved by {improvement:.2%})")
@@ -413,7 +418,17 @@ class PromptOptimizer:
                         }, f, indent=2)
                 else:
                     logger.info(f"Score {score:.2%} did not improve on best {self.best_prompt['score']:.2%}")
-                    
+                     
+                # Check for early stopping
+                if self.early_stopping_threshold is not None and score >= self.early_stopping_threshold:
+                    logger.info("="*60)
+                    logger.info("🚀 EARLY STOPPING TRIGGERED!")
+                    logger.info("="*60)
+                    logger.info(f"Accuracy threshold {self.early_stopping_threshold:.2%} reached: {score:.2%}")
+                    logger.info(f"Stopping optimization at iteration {i}")
+                    logger.info("="*60)
+                    break
+                
             except Exception as e:
                 logger.error(f"Error evaluating prompt in iteration {i}: {e}")
                 continue
@@ -423,6 +438,8 @@ class PromptOptimizer:
         logger.info("OPTIMIZATION COMPLETE")
         logger.info("="*80)
         logger.info(f"Best prompt found with accuracy: {self.best_prompt['score']:.2%}")
+        if self.early_stopping_threshold is not None and self.best_prompt['score'] >= self.early_stopping_threshold:
+            logger.info(f"🎯 Early stopping threshold of {self.early_stopping_threshold:.2%} was reached!")
         logger.info(f"All results saved in: {self.run_folder}")
         logger.info("\nBest prompt text:")
         logger.info("-"*40)
@@ -436,7 +453,8 @@ async def optimize_prompt(
     starting_prompt: str,
     audio_mapping_path: str,
     num_iterations: int = 5,
-    max_concurrent_tests: int = 6
+    max_concurrent_tests: int = 6,
+    early_stopping_threshold: float = None
 ) -> Tuple[str, float]:
     """
     Convenience function to run prompt optimization.
@@ -446,6 +464,7 @@ async def optimize_prompt(
         audio_mapping_path: Path to audio test mapping file
         num_iterations: Number of optimization iterations
         max_concurrent_tests: Max concurrent evaluations
+        early_stopping_threshold: If set, stop optimization when accuracy exceeds this threshold (0.0-1.0)
         
     Returns:
         Tuple of (best_prompt, best_score)
@@ -461,7 +480,8 @@ async def optimize_prompt(
     optimizer = PromptOptimizer(
         num_iterations=num_iterations,
         starting_prompt=starting_prompt,
-        evaluator=evaluator
+        evaluator=evaluator,
+        early_stopping_threshold=early_stopping_threshold
     )
     
     return await optimizer.run()

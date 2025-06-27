@@ -26,8 +26,8 @@ PROMPT_GENERATION_CONFIG = {
 # Model for evaluating a prompt against our audio test suite.
 # This is the "target" model we are trying to optimize the prompt for.
 # We use Flash for its speed and cost-effectiveness in the evaluation loop.
-# TARGET_MODEL_FOR_EVAL = "gemini-live-2.5-flash-preview-native-audio"
-TARGET_MODEL_FOR_EVAL = "gemini-live-2.5-flash"
+TARGET_MODEL_FOR_EVAL = "gemini-live-2.5-flash-preview-native-audio"
+# TARGET_MODEL_FOR_EVAL = "gemini-live-2.5-flash"
 TARGET_MODEL_CONFIG = {
     "temperature": 0.0,  # We want deterministic behavior during evaluation
 }

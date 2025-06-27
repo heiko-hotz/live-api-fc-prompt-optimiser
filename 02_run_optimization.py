@@ -84,7 +84,7 @@ Your main job is to understand the user's intent and route their request to the 
     # Configuration
     audio_mapping_path = "audio_test_suite/audio_mapping.json"
     num_iterations = 3  # Number of optimization iterations
-    max_concurrent_tests = 6  # Batch size for evaluation
+    max_concurrent_tests = 1  # Batch size for evaluation
     early_stopping_threshold = 1.0  # Stop if accuracy exceeds 90%
     
     logger.info(f"Configuration:")

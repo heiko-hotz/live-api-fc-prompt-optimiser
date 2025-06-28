@@ -30,7 +30,7 @@ async def main():
         print("Deleting existing assets...")
         if os.path.exists(AUDIO_SUITE_DIR):
             shutil.rmtree(AUDIO_SUITE_DIR)
-        os.remove(FINAL_MAPPING_FILE)
+        # No need to remove FINAL_MAPPING_FILE separately since it's inside AUDIO_SUITE_DIR
 
     try:
         # --- Step 1: Generate Text Restatements ---

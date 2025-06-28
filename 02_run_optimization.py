@@ -72,19 +72,24 @@ async def main():
         logger.error("Prerequisites not met. Exiting.")
         sys.exit(1)
     
-    # Define the starting prompt (baseline)
-    starting_prompt = """
-You are a helpful voice assistant for a service called Cymbal.
-Your main job is to understand the user's intent and route their request to the correct tool.
-- For general questions about Cymbal products or services, use the `get_chatbot_response` tool.
-- If the user explicitly asks to speak to a human or a live agent, use the `escalate_to_human_agent` tool with the reason 'live-agent-request'.
-- If the user sounds distressed, anxious, or mentions being in a vulnerable situation, use the `escalate_to_human_agent` tool with the reason 'vulnerable-user'.
-    """.strip()
+    # Load the comprehensive starting prompt from the initial system instruction file
+    initial_instruction_path = "initial-system-instruction.txt"
+    try:
+        with open(initial_instruction_path, 'r', encoding='utf-8') as f:
+            starting_prompt = f.read().strip()
+        logger.info(f"Loaded comprehensive starting prompt from: {initial_instruction_path}")
+    except FileNotFoundError:
+        logger.error(f"Initial system instruction file not found: {initial_instruction_path}")
+        logger.error("Please ensure the file exists or create it with your comprehensive system prompt.")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error loading initial system instruction: {e}")
+        sys.exit(1)
     
     # Configuration
     audio_mapping_path = "audio_test_suite/audio_mapping.json"
-    num_iterations = 3  # Number of optimization iterations
-    max_concurrent_tests = 1  # Batch size for evaluation
+    num_iterations = 10  # Number of optimization iterations
+    max_concurrent_tests = 2  # Batch size for evaluation
     early_stopping_threshold = 1.0  # Stop if accuracy exceeds 90%
     
     logger.info(f"Configuration:")

@@ -5,7 +5,7 @@
           "trigger_function": false
       },
       {
-        "query": "How do I buy stocks on Cymbal?",
+        "query": "How do I add money to my Cymbal account?",
         "trigger_function": true,
         "function_name": "get_chatbot_response",
         "function_args": {

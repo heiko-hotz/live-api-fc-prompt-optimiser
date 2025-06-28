@@ -331,6 +331,235 @@ class PromptOptimizer:
         # Return top 3 most informative failures
         return "\n".join(failing_examples[:3]) if failing_examples else "No specific failures to report"
 
+    def _parse_query_breakdown_for_history(self, breakdown_text: str) -> Dict[str, Dict[str, any]]:
+        """Parse query breakdown text into structured data for score history."""
+        queries = {}
+        
+        for line in breakdown_text.strip().split('\n'):
+            if not line.strip():
+                continue
+                
+            # Pattern: "Query text: passed/total (percentage%) [- STATUS]"
+            match = re.match(r'^(.*?): (\d+)/(\d+) \((\d+)%\)(.*)$', line.strip())
+            if match:
+                query_text = match.group(1).strip()
+                passed = int(match.group(2))
+                total = int(match.group(3))
+                percentage = int(match.group(4))
+                status_part = match.group(5).strip()
+                
+                # Extract status if present
+                status = None
+                if status_part.startswith(' - '):
+                    status = status_part[3:]  # Remove " - " prefix
+                
+                queries[query_text] = {
+                    'passed': passed,
+                    'total': total,
+                    'percentage': percentage,
+                    'status': status
+                }
+        
+        return queries
+
+    def _update_score_history(self, iteration: int, overall_accuracy: float, query_breakdown: str):
+        """Update the score history summary file with latest results."""
+        score_history_file = os.path.join(self.run_folder, 'score_history_summary.txt')
+        
+        # Parse current query breakdown
+        query_data = self._parse_query_breakdown_for_history(query_breakdown)
+        
+        # Read existing query data from prompt_history.txt to get complete historical data
+        all_results = []
+        try:
+            with open(self.prompt_history_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Parse all historical results from prompt_history.txt
+            pattern = re.compile(
+                r'<PROMPT>\n<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n'
+                r'<OVERALL_ACCURACY>\n(.*?)\n</OVERALL_ACCURACY>\n'
+                r'<QUERY_BREAKDOWN>\n(.*?)\n</QUERY_BREAKDOWN>\n'
+                r'<FAILING_EXAMPLES>\n(.*?)\n</FAILING_EXAMPLES>\n</PROMPT>', 
+                re.DOTALL
+            )
+            
+            matches = pattern.findall(content)
+            for i, (prompt_text, accuracy_str, breakdown_text, examples_text) in enumerate(matches):
+                try:
+                    overall_acc = float(accuracy_str.strip())
+                    query_breakdown_data = self._parse_query_breakdown_for_history(breakdown_text)
+                    
+                    all_results.append({
+                        'iteration': i,
+                        'overall_accuracy': overall_acc,
+                        'query_breakdown': query_breakdown_data
+                    })
+                except (ValueError, AttributeError):
+                    continue
+                    
+        except FileNotFoundError:
+            # If no history file yet, just use current result
+            all_results = [{
+                'iteration': iteration,
+                'overall_accuracy': overall_accuracy,
+                'query_breakdown': query_data
+            }]
+        
+        if not all_results:
+            return
+        
+        # Get all unique queries across all iterations
+        all_queries = set()
+        for result in all_results:
+            if result.get('query_breakdown'):
+                all_queries.update(result['query_breakdown'].keys())
+        all_queries = sorted(all_queries)
+        
+        # Generate summary
+        summary_lines = [
+            "="*80,
+            "OPTIMIZATION SCORE HISTORY (LIVE UPDATES)",
+            "="*80,
+            f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Completed iterations: {len(all_results)}",
+            ""
+        ]
+        
+        # Overall progress
+        initial_score = all_results[0]['overall_accuracy']
+        current_score = all_results[-1]['overall_accuracy']
+        best_score = max(r['overall_accuracy'] for r in all_results)
+        best_iteration = next(i for i, r in enumerate(all_results) if r['overall_accuracy'] == best_score)
+        
+        summary_lines.extend([
+            "OVERALL PROGRESS:",
+            "-" * 40,
+            f"Initial accuracy (Iteration 0):  {initial_score:.1%}",
+            f"Current accuracy (Iteration {len(all_results)-1}):  {current_score:.1%}",
+            f"Best accuracy achieved:          {best_score:.1%} (Iteration {best_iteration})",
+            f"Total improvement so far:        {current_score - initial_score:+.1%}",
+            ""
+        ])
+        
+        # Query-level performance across all iterations
+        if all_queries:
+            summary_lines.extend([
+                "QUERY PERFORMANCE ACROSS ITERATIONS:",
+                "-" * 80
+            ])
+            
+            # Create header
+            header = f"{'Query':<35} {'Iter':<4}"
+            for result in all_results:
+                header += f" {result['iteration']:<4}"
+            summary_lines.append(header)
+            
+            # Add separator
+            separator = "-" * len(header)
+            summary_lines.append(separator)
+            
+            # Add data rows for each query
+            for query in all_queries:
+                # Truncate long query names
+                query_display = (query[:32] + "...") if len(query) > 35 else query
+                row = f"{query_display:<35} {'%':<4}"
+                
+                for result in all_results:
+                    if result.get('query_breakdown') and query in result['query_breakdown']:
+                        query_info = result['query_breakdown'][query]
+                        percentage = query_info['percentage']
+                        
+                        # Add status indicator
+                        if query_info['status'] == 'CRITICAL':
+                            indicator = "⚠"
+                        elif query_info['status'] == 'WEAK':
+                            indicator = "⚡"
+                        else:
+                            indicator = ""
+                        
+                        cell = f"{percentage:2d}{indicator}"
+                        row += f" {cell:<4}"
+                    else:
+                        row += f" {'--':<4}"
+                
+                summary_lines.append(row)
+            
+            summary_lines.extend([
+                "",
+                "LEGEND:",
+                "⚠  CRITICAL (< 60% accuracy)",
+                "⚡ WEAK (60-79% accuracy)",
+                "-- No data available",
+                ""
+            ])
+        
+        # Overall accuracy progression
+        summary_lines.extend([
+            "OVERALL ACCURACY PROGRESSION:",
+            "-" * 40,
+            f"{'Iter':<4} {'Overall':<8} {'Status':<15}"
+        ])
+        
+        summary_lines.append("-" * 30)
+        
+        for result in all_results:
+            status = "✅ Complete"
+            if result['overall_accuracy'] == best_score:
+                status = "🏆 Best so far"
+            elif result['overall_accuracy'] < 0.6:
+                status = "⚠️  Critical"
+            
+            row = f"{result['iteration']:<4} {result['overall_accuracy']:<8.1%} {status:<15}"
+            summary_lines.append(row)
+        
+        # Current iteration detailed breakdown
+        current_result = all_results[-1]
+        if current_result.get('query_breakdown'):
+            summary_lines.extend([
+                "",
+                f"CURRENT ITERATION ({current_result['iteration']}) DETAILED BREAKDOWN:",
+                "-" * 50
+            ])
+            
+            for query, data in current_result['query_breakdown'].items():
+                status_indicator = ""
+                if data['status'] == 'CRITICAL':
+                    status_indicator = " ⚠️"
+                elif data['status'] == 'WEAK':
+                    status_indicator = " ⚡"
+                
+                summary_lines.append(
+                    f"{query}: {data['passed']}/{data['total']} ({data['percentage']}%){status_indicator}"
+                )
+        
+        # Critical issues tracking
+        summary_lines.extend([
+            "",
+            "CRITICAL ISSUES OVER TIME:",
+            "-" * 40
+        ])
+        
+        for result in all_results:
+            if result.get('query_breakdown'):
+                critical_queries = [
+                    query for query, data in result['query_breakdown'].items()
+                    if data['status'] == 'CRITICAL'
+                ]
+                
+                if critical_queries:
+                    # Truncate long query names for this summary
+                    critical_short = [q[:30] + "..." if len(q) > 33 else q for q in critical_queries]
+                    summary_lines.append(f"Iteration {result['iteration']}: {', '.join(critical_short)}")
+                else:
+                    summary_lines.append(f"Iteration {result['iteration']}: No critical issues ✅")
+        
+        # Write updated summary
+        with open(score_history_file, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(summary_lines))
+        
+        logger.info(f"Updated score history: {score_history_file}")
+
     async def run(self) -> Tuple[str, float]:
         """
         Executes the main optimization loop.
@@ -399,6 +628,9 @@ class PromptOptimizer:
                         f"<FAILING_EXAMPLES>\n{failing_examples}\n</FAILING_EXAMPLES>\n"
                         f"</PROMPT>\n\n"
                     )
+                
+                # Update score history summary
+                self._update_score_history(i, score, query_breakdown)
 
                                 # Check if this is a new best
                 if score > self.best_prompt["score"]:

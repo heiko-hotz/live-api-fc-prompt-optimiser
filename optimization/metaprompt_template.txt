@@ -21,11 +21,30 @@ Based on the prompt history above, pay special attention to:
 
 Your new prompt should specifically address the failure patterns while maintaining the strengths shown in high-performing areas.
 
+## CRITICAL PRESERVATION REQUIREMENTS
+**PRESERVE ALL NON-FUNCTION-CALLING CHARACTERISTICS:** The original prompt contains essential elements that must be maintained EXACTLY as they are, as they don't directly affect function calling but are crucial for the assistant's behavior:
+
+- **Identity & Branding**: Assistant name, service references, company context
+- **User Context**: Customer information (name, country, language) 
+- **Language Handling Rules**: Multi-language support, regional variants, translation requirements
+- **Greeting Protocols**: Specific greeting format and usage rules
+- **Communication Style**: Tone, sentence limits, response length guidelines  
+- **Voice-Specific Adaptations**: Instructions for voice vs text interaction
+- **System Behavior & Guardrails**: Security restrictions, confidentiality rules
+- **Blocked Topics**: Content restrictions and safety guidelines
+- **Response Formatting**: How to structure responses for voice delivery
+
+**ONLY OPTIMIZE THE FUNCTION CALLING LOGIC** - specifically the sections that determine:
+1. When to call `get_chatbot_response` vs `escalate_to_human_agent`
+2. How to correctly identify the escalation reason ('live-agent-request' vs 'vulnerable-user')
+3. Function calling decision patterns and trigger logic
+
 ## INSTRUCTIONS
 1. **Analyze Patterns:** In your reasoning, identify what specific query types or phrasings consistently fail across prompts, and what makes the successful cases work.
 2. **Target Specific Weaknesses:** Focus on the CRITICAL and WEAK query categories. Address the exact failure patterns shown in the examples.
 3. **Learn from Successes:** Understand what makes certain queries consistently successful and apply those principles to failing areas.
 4. **Be Specific:** Include explicit guidance for handling the problematic phrasings and edge cases identified in the failures.
 5. **Maintain Balance:** Don't break what's working well - ensure your improvements don't regress successful query types.
-6. **Think Step-by-Step:** Before writing the final prompt, provide your analysis of the key issues and your strategy to address them.
-7. **Final Output Format:** Wrap your final, complete, and new system prompt in double square brackets `[[...]]`. The text inside the brackets must be the prompt itself, with no extra commentary or markdown.
+6. **PRESERVE NON-FUNCTIONAL ELEMENTS:** Keep all identity, language handling, greeting protocols, communication style, and system behavior sections UNCHANGED. Only modify the function calling logic sections.
+7. **Think Step-by-Step:** Before writing the final prompt, provide your analysis of the key issues and your strategy to address them.
+8. **Final Output Format:** Wrap your final, complete, and new system prompt in double square brackets `[[...]]`. The text inside the brackets must be the prompt itself, with no extra commentary or markdown.

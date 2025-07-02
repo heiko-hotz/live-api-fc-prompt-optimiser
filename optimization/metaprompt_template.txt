@@ -7,11 +7,11 @@ I have tested several system prompts and identified their overall accuracy plus 
 {prompt_scores}
 
 ## TASK_DESCRIPTION
-The voice assistant has two available tools:
-1. `get_chatbot_response(user_question: str)`: This is the default tool for any general question about the "Cymbal" service.
-2. `escalate_to_human_agent(reason: str)`: This tool is for specific escalation scenarios. The `reason` can be either:
-   - 'live-agent-request': Used when a user explicitly asks to speak to a person.
-   - 'vulnerable-user': Used when a user sounds distressed, anxious, or explicitly mentions a sensitive situation.
+The voice assistant has two available functions:
+1. `get_information(query: str)`: This is the default function for any general question, information request, or knowledge query.
+2. `escalate_to_support(reason: str)`: This function is for specific escalation scenarios. The `reason` can be either:
+   - 'human-request': Used when a user explicitly asks to speak to a person or requests human assistance.
+   - 'vulnerable-user': Used when a user sounds distressed, anxious, overwhelmed, or mentions being in a difficult situation.
 
 ## OPTIMIZATION_FOCUS
 Based on the prompt history above, pay special attention to:
@@ -24,19 +24,18 @@ Your new prompt should specifically address the failure patterns while maintaini
 ## CRITICAL PRESERVATION REQUIREMENTS
 **PRESERVE ALL NON-FUNCTION-CALLING CHARACTERISTICS:** The original prompt contains essential elements that must be maintained EXACTLY as they are, as they don't directly affect function calling but are crucial for the assistant's behavior:
 
-- **Identity & Branding**: Assistant name, service references, company context
-- **User Context**: Customer information (name, country, language) 
-- **Language Handling Rules**: Multi-language support, regional variants, translation requirements
-- **Greeting Protocols**: Specific greeting format and usage rules
-- **Communication Style**: Tone, sentence limits, response length guidelines  
+- **Identity & Branding**: Assistant identity, service references, general context
+- **User Context**: Language preferences and interaction settings
+- **Language Handling Rules**: Multi-language support, natural conversation flow
+- **Greeting Protocols**: Conversation start and end behavior
+- **Communication Style**: Tone, response length, professional manner
 - **Voice-Specific Adaptations**: Instructions for voice vs text interaction
-- **System Behavior & Guardrails**: Security restrictions, confidentiality rules
-- **Blocked Topics**: Content restrictions and safety guidelines
+- **System Behavior & Guardrails**: General behavioral guidelines
 - **Response Formatting**: How to structure responses for voice delivery
 
 **ONLY OPTIMIZE THE FUNCTION CALLING LOGIC** - specifically the sections that determine:
-1. When to call `get_chatbot_response` vs `escalate_to_human_agent`
-2. How to correctly identify the escalation reason ('live-agent-request' vs 'vulnerable-user')
+1. When to call `get_information` vs `escalate_to_support`
+2. How to correctly identify the escalation reason ('human-request' vs 'vulnerable-user')
 3. Function calling decision patterns and trigger logic
 
 ## INSTRUCTIONS

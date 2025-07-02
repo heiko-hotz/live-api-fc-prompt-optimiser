@@ -33,17 +33,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # --- Tool Schemas (preserved from original project) ---
-GET_CHATBOT_RESPONSE_SCHEMA = {
-    "name": "get_chatbot_response",
-    "description": "Retrieves information or performs actions for Cymbal-related questions.",
-    "parameters": {"type": "OBJECT", "properties": {"user_question": {"type": "STRING", "description": "The exact, verbatim question or statement from the user."}}, "required": ["user_question"]}
+GET_INFORMATION_SCHEMA = {
+    "name": "get_information",
+    "description": "Retrieves information or answers general questions and knowledge queries.",
+    "parameters": {"type": "OBJECT", "properties": {"query": {"type": "STRING", "description": "The user's question or information request."}}, "required": ["query"]}
 }
-ESCALATE_TO_HUMAN_AGENT_SCHEMA = {
-    "name": "escalate_to_human_agent",
-    "description": "Escalates the conversation to a human agent when required.",
-    "parameters": {"type": "OBJECT", "properties": {"reason": {"type": "STRING", "description": "Must be one of 'live-agent-request' or 'vulnerable-user'."}}, "required": ["reason"]}
+ESCALATE_TO_SUPPORT_SCHEMA = {
+    "name": "escalate_to_support",
+    "description": "Escalates the conversation to human support when required.",
+    "parameters": {"type": "OBJECT", "properties": {"reason": {"type": "STRING", "description": "Must be one of 'human-request' or 'vulnerable-user'."}}, "required": ["reason"]}
 }
-TOOL_SCHEMAS = [GET_CHATBOT_RESPONSE_SCHEMA, ESCALATE_TO_HUMAN_AGENT_SCHEMA]
+TOOL_SCHEMAS = [GET_INFORMATION_SCHEMA, ESCALATE_TO_SUPPORT_SCHEMA]
 
 # --- Constants ---
 INPUT_RATE = 16000   # Required for Gemini
@@ -454,11 +454,11 @@ if __name__ == '__main__':
             
         # 2. Define a simple, human-written baseline prompt to test
         baseline_prompt = """
-You are a helpful voice assistant for a service called Cymbal.
-Your main job is to understand the user's intent and route their request to the correct tool.
-- For general questions about Cymbal products or services, use the `get_chatbot_response` tool.
-- If the user explicitly asks to speak to a human or a live agent, use the `escalate_to_human_agent` tool with the reason 'live-agent-request'.
-- If the user sounds distressed, anxious, or mentions being in a vulnerable situation, use the `escalate_to_human_agent` tool with the reason 'vulnerable-user'.
+You are a helpful AI voice assistant.
+Your main job is to understand the user's intent and route their request to the correct function.
+- For general questions about topics, information requests, or knowledge queries, use the `get_information` function.
+- If the user explicitly asks to speak to a human, get help from a person, or requests human assistance, use the `escalate_to_support` function with the reason 'human-request'.
+- If the user sounds distressed, anxious, mentions feeling overwhelmed, or describes a difficult situation, use the `escalate_to_support` function with the reason 'vulnerable-user'.
         """.strip()
 
         # 3. Initialize and run the evaluator

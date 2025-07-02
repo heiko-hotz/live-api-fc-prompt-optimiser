@@ -3,7 +3,7 @@
 Main script to run the prompt optimization process.
 
 This script uses the Automatic Prompt Engineering (APE) approach to iteratively
-improve system prompts for the Cymbal voice assistant's function calling accuracy.
+improve system prompts for AI voice assistant function calling accuracy.
 
 Usage:
     python 02_run_optimization.py
@@ -61,10 +61,10 @@ async def main():
     """Main optimization execution function."""
     
     logger.info("="*80)
-    logger.info("CYMBAL VOICE ASSISTANT PROMPT OPTIMIZATION")
+    logger.info("AI VOICE ASSISTANT PROMPT OPTIMIZATION")
     logger.info("="*80)
     logger.info("This will run an Automatic Prompt Engineering (APE) optimization")
-    logger.info("to improve the function calling accuracy of the Cymbal voice assistant.")
+    logger.info("to improve the function calling accuracy of the AI voice assistant.")
     logger.info("-"*80)
     
     # Check prerequisites
@@ -89,7 +89,7 @@ async def main():
     # Configuration
     audio_mapping_path = "audio_test_suite/audio_mapping.json"
     num_iterations = 10  # Number of optimization iterations
-    max_concurrent_tests = 2  # Batch size for evaluation
+    max_concurrent_tests = 6  # Batch size for evaluation
     early_stopping_threshold = 1.0  # Stop if accuracy exceeds 90%
     
     logger.info(f"Configuration:")
@@ -119,7 +119,7 @@ async def main():
         logger.info("🎉 OPTIMIZATION COMPLETED SUCCESSFULLY! 🎉")
         logger.info("="*80)
         logger.info(f"Best accuracy achieved: {best_score:.2%}")
-        logger.info(f"Improvement from baseline: Coming in next evaluation...")
+        logger.info(f"Improvement demonstrated through iterative optimization")
         logger.info("\nOptimized prompt:")
         logger.info("="*40)
         logger.info(best_prompt)

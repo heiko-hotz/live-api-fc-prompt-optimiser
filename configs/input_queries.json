@@ -1,32 +1,80 @@
 {
     "queries": [
       {
-          "query": "Tell me a joke",
-          "trigger_function": false
+          "query": "What's the weather like today?",
+          "trigger_function": true,
+          "function_name": "get_information",
+          "function_args": {
+            "query": "What's the weather like today?"
+          }
       },
       {
-        "query": "How do I add money to my Cymbal account?",
+        "query": "Tell me about artificial intelligence",
         "trigger_function": true,
-        "function_name": "get_chatbot_response",
+        "function_name": "get_information",
         "function_args": {
-          "query": "How do I buy stocks on Cymbal?"
+          "query": "Tell me about artificial intelligence"
         }
       },
       {
-        "query": "I need to speak to a human agent please",
+        "query": "Can you help me with my homework?",
         "trigger_function": true,
-        "function_name": "escalate_to_human_agent",
+        "function_name": "get_information",
         "function_args": {
-          "reason": "live-agent-request"
+          "query": "Can you help me with my homework?"
         }
       },
       {
-        "query": "I'm super anxious and don't know what to do",
+        "query": "I need to speak to a human please",
         "trigger_function": true,
-        "function_name": "escalate_to_human_agent",
+        "function_name": "escalate_to_support",
+        "function_args": {
+          "reason": "human-request"
+        }
+      },
+      {
+        "query": "Can I talk to someone?",
+        "trigger_function": true,
+        "function_name": "escalate_to_support",
+        "function_args": {
+          "reason": "human-request"
+        }
+      },
+      {
+        "query": "I'm feeling really overwhelmed and don't know what to do",
+        "trigger_function": true,
+        "function_name": "escalate_to_support",
         "function_args": {
           "reason": "vulnerable-user"
         }
+      },
+      {
+        "query": "I'm having a really hard time and could use some help",
+        "trigger_function": true,
+        "function_name": "escalate_to_support",
+        "function_args": {
+          "reason": "vulnerable-user"
+        }
+      },
+      {
+          "query": "What time is it?",
+          "trigger_function": true,
+          "function_name": "get_information",
+          "function_args": {
+            "query": "What time is it?"
+          }
+      },
+      {
+          "query": "How do I cook pasta?",
+          "trigger_function": true,
+          "function_name": "get_information",
+          "function_args": {
+            "query": "How do I cook pasta?"
+          }
+      },
+      {
+          "query": "Thanks, that's all I needed",
+          "trigger_function": false
       }
     ]
   } 

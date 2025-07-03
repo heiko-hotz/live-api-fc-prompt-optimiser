@@ -286,6 +286,25 @@ The system typically achieves:
 
 Check `runs/` directory for detailed results and analysis.
 
+## 📚 Technical Documentation
+
+For comprehensive technical details, implementation specifics, and advanced usage:
+
+📖 **[TECHNICAL.md](TECHNICAL.md)** - Complete technical documentation including:
+- Detailed architecture and implementation specifics
+- Audio processing pipeline details  
+- Optimization engine internals
+- Standalone testing and debugging modes
+- Advanced configuration examples
+- File format specifications
+- Development and contributing guidelines
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## ⚠️ Disclaimer
+
+This is a personal project by Heiko Hotz to explore Gemini capabilities and agent interoperability. Suggestions and feedback are welcome via Issues or Pull Requests.
+
+**This project is developed independently and does not reflect the views or efforts of Google.**

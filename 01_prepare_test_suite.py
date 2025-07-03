@@ -13,6 +13,7 @@ AUDIO_SUITE_DIR = "audio_test_suite"
 FINAL_MAPPING_FILE = os.path.join(AUDIO_SUITE_DIR, "audio_mapping.json")
 
 # --- Logging Configuration ---
+# Configure logging for the main script
 # Create separate handlers for console (INFO) and file (DEBUG)
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
@@ -20,17 +21,18 @@ console_handler.setLevel(logging.INFO)
 file_handler = logging.FileHandler('test_preparation.log')
 file_handler.setLevel(logging.DEBUG)
 
-# Configure the root logger with both handlers
+# Configure the root logger to INFO by default (keeps external libraries quiet)
 logging.basicConfig(
-    level=logging.DEBUG,  # Set root logger to DEBUG to capture everything
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO,  # Root logger at INFO to suppress external library debug noise
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[console_handler, file_handler]
 )
 logger = logging.getLogger(__name__)
 
-# Suppress verbose logging from external libraries
-logging.getLogger('google_genai.live').setLevel(logging.WARNING)
-logging.getLogger('google_genai').setLevel(logging.WARNING)
+# Explicitly enable DEBUG logging only for our application modules
+logging.getLogger('data_generation').setLevel(logging.DEBUG)
+logging.getLogger('evaluation').setLevel(logging.DEBUG)
+logging.getLogger('__main__').setLevel(logging.DEBUG)  # This script
 
 async def main():
     """

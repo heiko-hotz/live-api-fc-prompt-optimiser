@@ -42,11 +42,9 @@ VOICE_CONFIGS = [
 ]
 
 # --- Logging Configuration ---
+# Use whitelist approach - only enable DEBUG for our modules
 logger = logging.getLogger(__name__)
-
-# Suppress verbose logging from external libraries
-logging.getLogger('google_genai.live').setLevel(logging.WARNING)
-logging.getLogger('google_genai').setLevel(logging.WARNING)
+logging.getLogger('data_generation').setLevel(logging.DEBUG)
 
 def add_silence(audio_data: bytes, sample_rate: int = 16000, silence_duration: float = 1.0) -> bytes:
     """

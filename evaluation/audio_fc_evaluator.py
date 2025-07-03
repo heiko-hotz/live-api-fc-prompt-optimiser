@@ -29,12 +29,16 @@ from google.genai.types import (
 from configs.model_configs import TARGET_MODEL_FOR_EVAL, TARGET_MODEL_CONFIG
 
 # --- Logging Configuration ---
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Use whitelist approach - only enable DEBUG for our modules
+# Root logger at INFO by default (keeps external libraries quiet)
+logging.basicConfig(
+    level=logging.INFO,  # Root logger at INFO to suppress external library debug noise
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# Suppress verbose logging from external libraries
-logging.getLogger('google_genai.live').setLevel(logging.WARNING)
-logging.getLogger('google_genai').setLevel(logging.WARNING)
+# Explicitly enable DEBUG logging only for our application modules
+logging.getLogger('evaluation').setLevel(logging.DEBUG)
 
 # --- Tool Schemas (preserved from original project) ---
 GET_INFORMATION_SCHEMA = {

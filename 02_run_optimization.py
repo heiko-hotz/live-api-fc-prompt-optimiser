@@ -31,17 +31,19 @@ console_handler.setLevel(logging.INFO)
 file_handler = logging.FileHandler('optimization.log')
 file_handler.setLevel(logging.DEBUG)
 
-# Configure the root logger with both handlers
+# Configure the root logger to INFO by default (keeps external libraries quiet)
 logging.basicConfig(
-    level=logging.DEBUG,  # Set root logger to DEBUG to capture everything
+    level=logging.INFO,  # Root logger at INFO to suppress external library debug noise
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[console_handler, file_handler]
 )
 logger = logging.getLogger(__name__)
 
-# Suppress verbose logging from external libraries
-logging.getLogger('google_genai.live').setLevel(logging.WARNING)
-logging.getLogger('google_genai').setLevel(logging.WARNING)
+# Explicitly enable DEBUG logging only for our application modules
+logging.getLogger('optimization').setLevel(logging.DEBUG)
+logging.getLogger('evaluation').setLevel(logging.DEBUG)
+logging.getLogger('data_generation').setLevel(logging.DEBUG)
+logging.getLogger('__main__').setLevel(logging.DEBUG)  # This script
 
 def check_prerequisites():
     """Check that all prerequisites are met before starting optimization."""

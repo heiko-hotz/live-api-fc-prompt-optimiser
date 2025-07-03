@@ -16,16 +16,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from google import genai
 # Note: Other imports moved to where they're needed to avoid import issues in standalone mode
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging with whitelist approach
+# Root logger at INFO by default (keeps external libraries quiet)
+logging.basicConfig(
+    level=logging.INFO,  # Root logger at INFO to suppress external library debug noise
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# Suppress verbose logging from external libraries
-logging.getLogger('google_genai.live').setLevel(logging.WARNING)
-logging.getLogger('google_genai').setLevel(logging.WARNING)
-
-# Enable DEBUG logging specifically for this module
-# logger.setLevel(logging.DEBUG)
+# Explicitly enable DEBUG logging only for our application modules
+logging.getLogger('optimization').setLevel(logging.DEBUG)
 
 class PromptOptimizer:
     """

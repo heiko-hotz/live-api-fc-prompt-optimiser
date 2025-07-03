@@ -31,11 +31,9 @@ client = genai.Client(
 )
 
 # --- Logging Configuration ---
+# Use whitelist approach - only enable DEBUG for our modules
 logger = logging.getLogger(__name__)
-
-# Suppress verbose logging from external libraries
-logging.getLogger('google_genai.live').setLevel(logging.WARNING)
-logging.getLogger('google_genai').setLevel(logging.WARNING)
+logging.getLogger('data_generation').setLevel(logging.DEBUG)
 
 async def _restate_single_query(query: str) -> List[str]:
     """Helper function to restate one query using Gemini."""

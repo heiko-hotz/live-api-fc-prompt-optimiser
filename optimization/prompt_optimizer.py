@@ -92,7 +92,8 @@ class PromptOptimizer:
             
             # Try enhanced format first
             enhanced_pattern = re.compile(
-                r'<PROMPT>\n<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n'
+                r'<PROMPT>\n<ITERATION>\n(.*?)\n</ITERATION>\n'
+                r'<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n'
                 r'<OVERALL_ACCURACY>\n(.*?)\n</OVERALL_ACCURACY>\n'
                 r'<QUERY_BREAKDOWN>\n(.*?)\n</QUERY_BREAKDOWN>\n'
                 r'<FAILING_EXAMPLES>\n(.*?)\n</FAILING_EXAMPLES>\n</PROMPT>', 
@@ -101,12 +102,12 @@ class PromptOptimizer:
             enhanced_matches = enhanced_pattern.findall(content)
             
             if enhanced_matches:
-                # Sort by overall accuracy (descending)
-                sorted_prompts = sorted(enhanced_matches, key=lambda x: float(x[1]), reverse=True)
+                # Sort by overall accuracy (ascending) - iteration info is captured but not used for sorting
+                sorted_prompts = sorted(enhanced_matches, key=lambda x: float(x[2]), reverse=False)
                 
-                # Format enhanced data for metaprompt
+                # Format enhanced data for metaprompt (iteration info is not included)
                 formatted_history = ""
-                for prompt, accuracy, breakdown, examples in sorted_prompts:
+                for iteration, prompt, accuracy, breakdown, examples in sorted_prompts:
                     formatted_history += (
                         f"<PROMPT>\n<PROMPT_TEXT>\n{prompt.strip()}\n</PROMPT_TEXT>\n"
                         f"<OVERALL_ACCURACY>\n{float(accuracy):.2%}\n</OVERALL_ACCURACY>\n"
@@ -377,7 +378,8 @@ class PromptOptimizer:
             
             # Parse all historical results from prompt_history.txt
             pattern = re.compile(
-                r'<PROMPT>\n<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n'
+                r'<PROMPT>\n<ITERATION>\n(.*?)\n</ITERATION>\n'
+                r'<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n'
                 r'<OVERALL_ACCURACY>\n(.*?)\n</OVERALL_ACCURACY>\n'
                 r'<QUERY_BREAKDOWN>\n(.*?)\n</QUERY_BREAKDOWN>\n'
                 r'<FAILING_EXAMPLES>\n(.*?)\n</FAILING_EXAMPLES>\n</PROMPT>', 
@@ -385,7 +387,7 @@ class PromptOptimizer:
             )
             
             matches = pattern.findall(content)
-            for i, (prompt_text, accuracy_str, breakdown_text, examples_text) in enumerate(matches):
+            for i, (iteration_info, prompt_text, accuracy_str, breakdown_text, examples_text) in enumerate(matches):
                 try:
                     overall_acc = float(accuracy_str.strip())
                     query_breakdown_data = self._parse_query_breakdown_for_history(breakdown_text)
@@ -416,41 +418,37 @@ class PromptOptimizer:
                 all_queries.update(result['query_breakdown'].keys())
         all_queries = sorted(all_queries)
         
-        # Generate summary
+        # Generate simplified summary - only the 3 sections requested
         summary_lines = [
-            "="*80,
-            "OPTIMIZATION SCORE HISTORY (LIVE UPDATES)",
-            "="*80,
             f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"Completed iterations: {len(all_results)}",
             ""
         ]
         
-        # Overall progress
-        initial_score = all_results[0]['overall_accuracy']
-        current_score = all_results[-1]['overall_accuracy']
-        best_score = max(r['overall_accuracy'] for r in all_results)
-        best_iteration = next(i for i, r in enumerate(all_results) if r['overall_accuracy'] == best_score)
-        
+        # Overall accuracy progression (without status column)
         summary_lines.extend([
-            "OVERALL PROGRESS:",
+            "OVERALL ACCURACY PROGRESSION:",
             "-" * 40,
-            f"Initial accuracy (Iteration 0):  {initial_score:.1%}",
-            f"Current accuracy (Iteration {len(all_results)-1}):  {current_score:.1%}",
-            f"Best accuracy achieved:          {best_score:.1%} (Iteration {best_iteration})",
-            f"Total improvement so far:        {current_score - initial_score:+.1%}",
-            ""
+            f"{'Iter':<4} {'Overall':<8}"
         ])
         
-        # Query-level performance across all iterations
+        summary_lines.append("-" * 15)
+        
+        for result in all_results:
+            row = f"{result['iteration']:<4} {result['overall_accuracy']:<8.1%}"
+            summary_lines.append(row)
+        
+        summary_lines.append("")
+        
+        # Query-level performance across all iterations (without legend)
         if all_queries:
             summary_lines.extend([
                 "QUERY PERFORMANCE ACROSS ITERATIONS:",
                 "-" * 80
             ])
             
-            # Create header
-            header = f"{'Query':<35} {'Iter':<4}"
+            # Create header with ID column
+            header = f"{'ID':<8} {'Query':<35} {'Iter':<4}"
             for result in all_results:
                 header += f" {result['iteration']:<4}"
             summary_lines.append(header)
@@ -459,100 +457,27 @@ class PromptOptimizer:
             separator = "-" * len(header)
             summary_lines.append(separator)
             
-            # Add data rows for each query
-            for query in all_queries:
+            # Add data rows for each query (with ID column)
+            for query_index, query in enumerate(all_queries, 1):
+                # Generate query ID (query_1, query_2, etc.)
+                query_id = f"query_{query_index}"
+                
                 # Truncate long query names
                 query_display = (query[:32] + "...") if len(query) > 35 else query
-                row = f"{query_display:<35} {'%':<4}"
+                row = f"{query_id:<8} {query_display:<35} {'%':<4}"
                 
                 for result in all_results:
                     if result.get('query_breakdown') and query in result['query_breakdown']:
                         query_info = result['query_breakdown'][query]
                         percentage = query_info['percentage']
                         
-                        # Add status indicator
-                        if query_info['status'] == 'CRITICAL':
-                            indicator = "⚠"
-                        elif query_info['status'] == 'WEAK':
-                            indicator = "⚡"
-                        else:
-                            indicator = ""
-                        
-                        cell = f"{percentage:2d}{indicator}"
+                        # Remove status indicators - just show percentage
+                        cell = f"{percentage:2d}"
                         row += f" {cell:<4}"
                     else:
                         row += f" {'--':<4}"
                 
                 summary_lines.append(row)
-            
-            summary_lines.extend([
-                "",
-                "LEGEND:",
-                "⚠  CRITICAL (< 60% accuracy)",
-                "⚡ WEAK (60-79% accuracy)",
-                "-- No data available",
-                ""
-            ])
-        
-        # Overall accuracy progression
-        summary_lines.extend([
-            "OVERALL ACCURACY PROGRESSION:",
-            "-" * 40,
-            f"{'Iter':<4} {'Overall':<8} {'Status':<15}"
-        ])
-        
-        summary_lines.append("-" * 30)
-        
-        for result in all_results:
-            status = "✅ Complete"
-            if result['overall_accuracy'] == best_score:
-                status = "🏆 Best so far"
-            elif result['overall_accuracy'] < 0.6:
-                status = "⚠️  Critical"
-            
-            row = f"{result['iteration']:<4} {result['overall_accuracy']:<8.1%} {status:<15}"
-            summary_lines.append(row)
-        
-        # Current iteration detailed breakdown
-        current_result = all_results[-1]
-        if current_result.get('query_breakdown'):
-            summary_lines.extend([
-                "",
-                f"CURRENT ITERATION ({current_result['iteration']}) DETAILED BREAKDOWN:",
-                "-" * 50
-            ])
-            
-            for query, data in current_result['query_breakdown'].items():
-                status_indicator = ""
-                if data['status'] == 'CRITICAL':
-                    status_indicator = " ⚠️"
-                elif data['status'] == 'WEAK':
-                    status_indicator = " ⚡"
-                
-                summary_lines.append(
-                    f"{query}: {data['passed']}/{data['total']} ({data['percentage']}%){status_indicator}"
-                )
-        
-        # Critical issues tracking
-        summary_lines.extend([
-            "",
-            "CRITICAL ISSUES OVER TIME:",
-            "-" * 40
-        ])
-        
-        for result in all_results:
-            if result.get('query_breakdown'):
-                critical_queries = [
-                    query for query, data in result['query_breakdown'].items()
-                    if data['status'] == 'CRITICAL'
-                ]
-                
-                if critical_queries:
-                    # Truncate long query names for this summary
-                    critical_short = [q[:30] + "..." if len(q) > 33 else q for q in critical_queries]
-                    summary_lines.append(f"Iteration {result['iteration']}: {', '.join(critical_short)}")
-                else:
-                    summary_lines.append(f"Iteration {result['iteration']}: No critical issues ✅")
         
         # Write updated summary
         with open(score_history_file, 'w', encoding='utf-8') as f:
@@ -620,9 +545,11 @@ class PromptOptimizer:
                 failing_examples = self._extract_failing_examples(details)
                 
                 # Update history file with enhanced format
+                iteration_label = "INITIAL PROMPT" if i == 0 else f"ITERATION {i}"
                 async with aiofiles.open(self.prompt_history_file, 'a') as f:
                     await f.write(
-                        f"<PROMPT>\n<PROMPT_TEXT>\n{current_prompt}\n</PROMPT_TEXT>\n"
+                        f"<PROMPT>\n<ITERATION>\n{iteration_label}\n</ITERATION>\n"
+                        f"<PROMPT_TEXT>\n{current_prompt}\n</PROMPT_TEXT>\n"
                         f"<OVERALL_ACCURACY>\n{score}\n</OVERALL_ACCURACY>\n"
                         f"<QUERY_BREAKDOWN>\n{query_breakdown}\n</QUERY_BREAKDOWN>\n"
                         f"<FAILING_EXAMPLES>\n{failing_examples}\n</FAILING_EXAMPLES>\n"

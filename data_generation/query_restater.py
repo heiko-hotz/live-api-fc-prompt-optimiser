@@ -12,7 +12,7 @@ from configs.model_configs import RESTATE_QUERIES_MODEL, RESTATE_QUERIES_CONFIG
 
 # Configuration for file paths
 INPUT_FILE = "configs/input_queries.json"
-OUTPUT_FILE = "output_queries.json" # This is a temporary intermediate file
+OUTPUT_FILE = "data_generation/output_queries.json" # This is a temporary intermediate file
 NUM_RESTATEMENTS = 5
 MAX_CONCURRENT_REQUESTS = 5
 

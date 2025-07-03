@@ -9,7 +9,7 @@ import numpy as np
 import struct
 
 # Configuration
-INPUT_FILE = "output_queries.json"  # Reads the intermediate file
+INPUT_FILE = "data_generation/output_queries.json"  # Reads the intermediate file
 OUTPUT_DIR = "audio_test_suite"     # Main output directory
 MAPPING_FILE = os.path.join(OUTPUT_DIR, "audio_mapping.json") # The final, important output
 
@@ -166,8 +166,8 @@ async def generate_audio_files():
         with open(MAPPING_FILE, 'w') as f:
             json.dump({"audio_mappings": audio_mappings}, f, indent=2)
 
-        if os.path.exists(INPUT_FILE):
-            os.remove(INPUT_FILE)
+        # if os.path.exists(INPUT_FILE):
+        #     os.remove(INPUT_FILE)
 
     except FileNotFoundError:
         print(f"Error: Intermediate file '{INPUT_FILE}' not found. Ensure restater runs first.")

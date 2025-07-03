@@ -19,22 +19,26 @@ The demo uses a generic **virtual assistant** that can:
   - Direct requests for human help (`human-request`)
   - Users in distress or vulnerable situations (`vulnerable-user`)
 
-**Starting Point**: A basic prompt with ~60-70% function calling accuracy
+**Starting Point**: A comprehensive initial prompt with baseline accuracy
 **Goal**: Automatically improve to 90%+ accuracy through iterative optimization
 
 ## 🏗️ Project Structure
 
 ```
-live-api-fc-prompt-optimiser/
+voice-assistant-prompt-optimization/
 ├── 01_prepare_test_suite.py     # Step 1: Generate test cases and audio
 ├── 02_run_optimization.py       # Step 2: Run prompt optimization
+├── initial-system-instruction.txt  # Comprehensive starting prompt
+├── optimization.log             # Detailed optimization logs (auto-generated)
+├── test_preparation.log         # Test suite preparation logs (auto-generated)
 ├── audio_test_suite/           # Generated audio files and mappings
 ├── configs/
 │   ├── input_queries.json      # Base queries for test generation
 │   └── model_configs.py        # AI model configurations
 ├── data_generation/
 │   ├── audio_generator.py      # Text-to-speech generation
-│   └── query_restater.py       # Query variation generation
+│   ├── query_restater.py       # Query variation generation
+│   └── output_queries.json     # Generated query variations (auto-generated)
 ├── evaluation/
 │   └── audio_fc_evaluator.py   # Function call evaluation system
 ├── optimization/
@@ -57,7 +61,7 @@ live-api-fc-prompt-optimiser/
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd live-api-fc-prompt-optimiser
+cd voice-assistant-prompt-optimization
 
 # Install dependencies
 pip install -r requirements.txt
@@ -81,6 +85,7 @@ This script will:
 - Generate multiple variations of each query using AI
 - Create audio files using text-to-speech with different voices and accents
 - Build a comprehensive test mapping file
+- Generate logs in `test_preparation.log`
 
 **Expected output**: `audio_test_suite/` directory with audio files and `audio_mapping.json`
 
@@ -91,15 +96,33 @@ python 02_run_optimization.py
 ```
 
 This will:
-- Start with a baseline prompt (typically 60-70% accuracy)
+- Load the comprehensive starting prompt from `initial-system-instruction.txt`
 - Iteratively generate improved prompts using APE
 - Evaluate each prompt against the audio test suite
 - Save detailed results in timestamped `runs/` folders
+- Generate logs in `optimization.log`
 - Stop early if accuracy threshold is exceeded
 
 ## ⚙️ Configuration
 
 ### Key Configuration Files
+
+#### `initial-system-instruction.txt`
+The comprehensive starting prompt that defines the assistant's behavior:
+```
+# Identity
+You are a helpful AI voice assistant.
+Your goal is to help users by answering questions and performing actions through function calls.
+Your responses should be 2-3 short sentences. After providing assistance, ask if the user needs anything else.
+
+# User Context
+- User's preferred language: en
+- Interaction mode: voice
+
+# Responsibilities
+Your main job is to understand the user's intent and route their request to the correct function.
+...
+```
 
 #### `configs/input_queries.json`
 Define the base queries for test generation:
@@ -113,7 +136,7 @@ Define the base queries for test generation:
       "function_args": {"query": "What's the weather like today?"}
     },
     {
-      "query": "I need to speak with someone",
+      "query": "I need to speak to a human please",
       "trigger_function": true,
       "function_name": "escalate_to_support",
       "function_args": {"reason": "human-request"}
@@ -125,32 +148,37 @@ Define the base queries for test generation:
 #### `configs/model_configs.py`
 Configure AI models for different tasks:
 ```python
+# Model for generating query restatements
+RESTATE_QUERIES_MODEL = "gemini-2.5-flash"
+
 # Model for generating prompt variations
 PROMPT_GENERATION_MODEL = "gemini-2.5-pro"
 
-# Model for query restatement
-QUERY_RESTATEMENT_MODEL = "gemini-2.5-flash"
+# Model for evaluating function calls
+TARGET_MODEL_FOR_EVAL = "gemini-live-2.5-flash"
 ```
 
 #### `02_run_optimization.py` - Main Settings
 Key parameters you can adjust:
 ```python
-num_iterations = 3              # Number of optimization rounds
-max_concurrent_tests = 1        # Parallel evaluation limit
+num_iterations = 10             # Number of optimization rounds
+max_concurrent_tests = 6        # Parallel evaluation limit
 early_stopping_threshold = 1.0  # Stop when accuracy exceeds this (0.0-1.0)
 ```
 
 ### Starting Prompt Customization
 
-Edit the `starting_prompt` in `02_run_optimization.py`:
-```python
-starting_prompt = """
+Edit the `initial-system-instruction.txt` file to customize the starting prompt:
+```
+# Identity
 You are a helpful AI voice assistant.
+Your goal is to help users by answering questions and performing actions through function calls.
+
+# Responsibilities
 Your main job is to understand the user's intent and route their request to the correct function.
 - For general questions about topics, information requests, or knowledge queries, use the `get_information` function.
 - If the user explicitly asks to speak to a human, get help from a person, or requests human assistance, use the `escalate_to_support` function with the reason 'human-request'.
 - If the user sounds distressed, anxious, mentions feeling overwhelmed, or describes a difficult situation, use the `escalate_to_support` function with the reason 'vulnerable-user'.
-""".strip()
 ```
 
 ## 📊 Understanding Results
@@ -163,6 +191,7 @@ runs/optimization_20241201_143022/
 ├── best_prompt.txt              # Final optimized prompt
 ├── best_prompt_info.json        # Metadata about best prompt
 ├── prompt_history.txt           # All prompts tried with scores
+├── score_history_summary.txt    # Score progression summary
 ├── iteration_0/                 # Baseline evaluation
 │   ├── evaluation_details.json
 │   ├── prompt.txt
@@ -180,130 +209,100 @@ runs/optimization_20241201_143022/
 ### Early Stopping
 
 The system will automatically stop when:
-- The accuracy threshold is reached (default 90%)
+- The accuracy threshold is reached (default 100%)
 - Maximum iterations are completed
 - Critical errors prevent continuation
 
 Example early stopping log:
 ```
 🚀 EARLY STOPPING TRIGGERED!
-Accuracy threshold 90.0% reached: 94.2%
-Stopping optimization at iteration 3
+Accuracy threshold 100.0% reached: 96.7%
+Stopping optimization at iteration 1
 ```
+
+### Log Files
+
+The system generates detailed logs:
+- **`optimization.log`**: Complete optimization process logs
+- **`test_preparation.log`**: Test suite generation logs
 
 ## 🔧 Advanced Usage
 
 ### Custom Function Schema
 
-To adapt for different function calling scenarios, modify the system prompt to include your functions:
+To adapt for different function calling scenarios, modify the system prompt in `initial-system-instruction.txt` to include your functions:
+
+```
+# Function Selection Guidelines
+- **Default to information:** When in doubt about general questions, use `get_information`
+- **Clear human requests:** Only use `escalate_to_support` with 'human-request' when explicitly asked
+- **Emotional distress:** Use `escalate_to_support` with 'vulnerable-user' when users express anxiety, stress, or emotional difficulty
+```
+
+### Extending Test Cases
+
+Add new base queries to `configs/input_queries.json`:
+```json
+{
+  "query": "Your new test query",
+  "trigger_function": true,
+  "function_name": "your_function_name",
+  "function_args": {"param": "value"}
+}
+```
+
+### Model Configuration
+
+Update `configs/model_configs.py` to use different models:
 ```python
-# Example: E-commerce assistant
-functions = [
-    {"name": "search_products", "description": "Search for products"},
-    {"name": "get_order_status", "description": "Check order status"},
-    {"name": "contact_support", "description": "Connect to customer service"}
-]
+# Use different models for different stages
+RESTATE_QUERIES_MODEL = "gemini-2.5-flash"      # Fast model for query generation
+PROMPT_GENERATION_MODEL = "gemini-2.5-pro"      # Advanced model for prompt optimization
+TARGET_MODEL_FOR_EVAL = "gemini-live-2.5-flash" # Real-time model for evaluation
 ```
 
-### Custom Evaluation Logic
+## 🔍 Troubleshooting
 
-Edit `evaluation/audio_fc_evaluator.py` to match your function call extraction patterns:
-```python
-def _extract_function_call(self, response_text: str) -> Dict:
-    # Implement your function call extraction logic
-    pass
-```
+### Common Issues
 
-## 🎯 Use Cases
+1. **Missing test suite**: Run `01_prepare_test_suite.py` first
+2. **Authentication errors**: Run `gcloud auth application-default login`
+3. **Environment variables**: Ensure `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` are set
+4. **API permissions**: Enable Vertex AI and Text-to-Speech APIs in Google Cloud Console
 
-This framework can be adapted for various voice assistant scenarios:
-- **Customer service bots** (routing, escalation)
-- **E-commerce assistants** (search, orders, support)
-- **Smart home controls** (device control, information)
-- **Healthcare assistants** (appointment booking, information)
-- **Educational tutors** (Q&A, assessments, help)
+### Performance Tips
 
-## 🚀 Demo Tips
+- **Increase concurrent tests** for faster evaluation (adjust `max_concurrent_tests`)
+- **Reduce iterations** for quicker testing (adjust `num_iterations`)
+- **Lower early stopping threshold** for faster convergence (adjust `early_stopping_threshold`)
 
-For best demonstration results:
-1. Start with a deliberately suboptimal prompt
-2. Use diverse test queries that showcase edge cases
-3. Run 3-5 optimization iterations to show improvement
-4. Highlight specific failure patterns that get fixed
+## 📈 Results Analysis
 
-## 📈 Expected Results
+The system typically achieves:
+- **Starting accuracy**: 60-70% (baseline)
+- **Target accuracy**: 90%+ (optimized)
+- **Optimization time**: 15-30 minutes (depending on configuration)
+- **Test coverage**: 60+ audio variations across multiple query types
 
-Typical optimization runs show:
-- **Baseline**: 60-75% accuracy
-- **After 3 iterations**: 85-95% accuracy
-- **Key improvements**: Better edge case handling, clearer function selection logic
-
-## 🎯 Demo Walkthrough
-
-Here's a step-by-step walkthrough for demonstrating the system:
-
-### 1. Initial Setup (5 minutes)
-```bash
-# Clone and setup
-git clone <your-repo-url>
-cd live-api-fc-prompt-optimiser
-pip install -r requirements.txt
-
-# Set up Google Cloud
-gcloud auth application-default login
-export GOOGLE_CLOUD_PROJECT="your-project-id"
-export GOOGLE_CLOUD_LOCATION="us-central1"
-```
-
-### 2. Generate Test Suite (3 minutes)
-```bash
-python 01_prepare_test_suite.py
-```
-This creates:
-- 10 base queries (weather, AI info, homework help, human requests, distress scenarios)
-- 5 restatements per query (50 total variations)
-- Audio files with different voices and accents
-
-### 3. Run Optimization (10 minutes)
-```bash
-python 02_run_optimization.py
-```
-
-### 4. Key Demo Points
-- **Show the baseline prompt**: Simple, generic AI assistant instructions
-- **Highlight initial accuracy**: Usually 60-75% (deliberately suboptimal)
-- **Watch real-time optimization**: Each iteration shows improvement analysis
-- **Point out failure patterns**: Which queries fail and why
-- **Celebrate improvements**: How AI learns to handle edge cases better
-- **Final results**: Usually 85-95% accuracy after 3-5 iterations
-
-### 5. Example Failure → Success Patterns
-- **Initial**: Struggles with indirect human requests like "Can I talk to someone?"
-- **Optimized**: Learns to recognize these as escalation requests
-- **Initial**: Confuses general distress with specific help requests  
-- **Optimized**: Better distinguishes between 'human-request' vs 'vulnerable-user'
-
-The demo perfectly showcases how AI can automatically improve AI through iterative prompt engineering!
+Check `runs/` directory for detailed results and analysis.
 
 ## 🤝 Contributing
 
+To contribute to this project:
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-capability`
+2. Create a feature branch
 3. Make your changes
-4. Add tests if applicable
+4. Test with your own Google Cloud setup
 5. Submit a pull request
 
 ## 📄 License
 
-See [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🆘 Support
+## 🙋 Support
 
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review logs in the `runs/` directory
-3. Open an issue with detailed error messages and configuration
-
----
-
-**Happy optimizing!** 🎯✨
+For questions or issues:
+1. Check the log files (`optimization.log`, `test_preparation.log`)
+2. Review the troubleshooting section above
+3. Ensure all prerequisites are met
+4. Open an issue if problems persist

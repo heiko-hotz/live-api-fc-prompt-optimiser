@@ -286,23 +286,6 @@ The system typically achieves:
 
 Check `runs/` directory for detailed results and analysis.
 
-## 🤝 Contributing
-
-To contribute to this project:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with your own Google Cloud setup
-5. Submit a pull request
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙋 Support
-
-For questions or issues:
-1. Check the log files (`optimization.log`, `test_preparation.log`)
-2. Review the troubleshooting section above
-3. Ensure all prerequisites are met
-4. Open an issue if problems persist

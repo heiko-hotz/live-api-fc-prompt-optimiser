@@ -24,15 +24,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure logging for the main script
+# Create separate handlers for console (INFO) and file (DEBUG)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('optimization.log')
+file_handler.setLevel(logging.DEBUG)
+
+# Configure the root logger with both handlers
 logging.basicConfig(
-    level=logging.INFO,  # Changed to DEBUG to see detailed output
+    level=logging.DEBUG,  # Set root logger to DEBUG to capture everything
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('optimization.log')
-    ]
+    handlers=[console_handler, file_handler]
 )
 logger = logging.getLogger(__name__)
+
+# Suppress verbose logging from external libraries
+logging.getLogger('google_genai.live').setLevel(logging.WARNING)
+logging.getLogger('google_genai').setLevel(logging.WARNING)
 
 def check_prerequisites():
     """Check that all prerequisites are met before starting optimization."""
@@ -77,7 +86,7 @@ async def main():
     try:
         with open(initial_instruction_path, 'r', encoding='utf-8') as f:
             starting_prompt = f.read().strip()
-        logger.info(f"Loaded comprehensive starting prompt from: {initial_instruction_path}")
+        logger.debug(f"Loaded comprehensive starting prompt from: {initial_instruction_path}")
     except FileNotFoundError:
         logger.error(f"Initial system instruction file not found: {initial_instruction_path}")
         logger.error("Please ensure the file exists or create it with your comprehensive system prompt.")
@@ -92,12 +101,12 @@ async def main():
     max_concurrent_tests = 6  # Batch size for evaluation
     early_stopping_threshold = 1.0  # Stop if accuracy exceeds 90%
     
-    logger.info(f"Configuration:")
-    logger.info(f"  - Audio mapping: {audio_mapping_path}")
-    logger.info(f"  - Optimization iterations: {num_iterations}")
-    logger.info(f"  - Max concurrent tests: {max_concurrent_tests}")
-    logger.info(f"  - Early stopping threshold: {early_stopping_threshold:.2%}")
-    logger.info(f"  - Starting prompt length: {len(starting_prompt)} characters")
+    logger.debug(f"Configuration:")
+    logger.debug(f"  - Audio mapping: {audio_mapping_path}")
+    logger.debug(f"  - Optimization iterations: {num_iterations}")
+    logger.debug(f"  - Max concurrent tests: {max_concurrent_tests}")
+    logger.debug(f"  - Early stopping threshold: {early_stopping_threshold:.2%}")
+    logger.debug(f"  - Starting prompt length: {len(starting_prompt)} characters")
     logger.info("-"*80)
     
     try:

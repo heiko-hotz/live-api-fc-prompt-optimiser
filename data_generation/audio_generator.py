@@ -7,6 +7,14 @@ from typing import List, Dict
 from google.cloud import texttospeech
 import numpy as np
 import struct
+import logging
+import io
+import sys
+from pathlib import Path
+from google.api_core import exceptions as google_exceptions
+
+# Add the parent directory to Python path to find the configs module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Configuration
 INPUT_FILE = "data_generation/output_queries.json"  # Reads the intermediate file
@@ -33,6 +41,12 @@ VOICE_CONFIGS = [
     {"name": "en-IN-Chirp3-HD-Gacrux", "dialect": "en-IN"}
 ]
 
+# --- Logging Configuration ---
+logger = logging.getLogger(__name__)
+
+# Suppress verbose logging from external libraries
+logging.getLogger('google_genai.live').setLevel(logging.WARNING)
+logging.getLogger('google_genai').setLevel(logging.WARNING)
 
 def add_silence(audio_data: bytes, sample_rate: int = 16000, silence_duration: float = 1.0) -> bytes:
     """
@@ -107,10 +121,10 @@ async def _synthesize_audio_for_text(text: str, voice_config: Dict, output_path:
             out.write(struct.pack('<I', data_size))
             out.write(audio_with_silence)
             
-        print(f"Generated audio with silence: {output_path}")
+        logger.debug(f"Generated audio with silence: {output_path}")
         
     except Exception as e:
-        print(f"Error generating audio for text '{text[:50]}...': {e}")
+        logger.error(f"Error generating audio for text '{text[:50]}...': {e}")
 
 
 async def generate_audio_files():
@@ -160,7 +174,7 @@ async def generate_audio_files():
             
             audio_mappings.append(mapping_entry)
         
-        print(f"Generating {len(tasks)} audio files...")
+        logger.info(f"Generating {len(tasks)} audio files...")
         await asyncio.gather(*tasks)
 
         with open(MAPPING_FILE, 'w') as f:
@@ -170,8 +184,8 @@ async def generate_audio_files():
         #     os.remove(INPUT_FILE)
 
     except FileNotFoundError:
-        print(f"Error: Intermediate file '{INPUT_FILE}' not found. Ensure restater runs first.")
+        logger.error(f"Intermediate file '{INPUT_FILE}' not found. Ensure restater runs first.")
         raise
     except Exception as e:
-        print(f"Error generating audio files: {e}")
+        logger.error(f"Error generating audio files: {e}")
         raise

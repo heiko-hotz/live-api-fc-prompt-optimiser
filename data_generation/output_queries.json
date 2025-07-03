@@ -34,11 +34,11 @@
       "original_query": "Can you help me with my homework?",
       "trigger_function": true,
       "restatements": [
-        "I require assistance with some financial research I am undertaking.",
-        "Could you please help me understand some financial concepts I'm studying?",
-        "Hey, I need a hand figuring out some of my personal finances.",
-        "Walk me through setting up a budget for my expenses.",
-        "Got any tips for my money homework?"
+        "I need help with my homework assignment.",
+        "Could you please help me understand some concepts I'm studying?",
+        "Hey, I need a hand figuring out this homework problem.",
+        "Walk me through this homework question I'm stuck on.",
+        "Got any tips for my school assignment?"
       ],
       "function_name": "get_information",
       "function_args": {

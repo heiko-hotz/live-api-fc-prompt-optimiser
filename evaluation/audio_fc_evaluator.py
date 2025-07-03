@@ -29,8 +29,12 @@ from google.genai.types import (
 from configs.model_configs import TARGET_MODEL_FOR_EVAL, TARGET_MODEL_CONFIG
 
 # --- Logging Configuration ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Suppress verbose logging from external libraries
+logging.getLogger('google_genai.live').setLevel(logging.WARNING)
+logging.getLogger('google_genai').setLevel(logging.WARNING)
 
 # --- Tool Schemas (preserved from original project) ---
 GET_INFORMATION_SCHEMA = {
@@ -68,7 +72,7 @@ class AudioFunctionCallEvaluator:
             raise ValueError("GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables must be set")
             
         self.client = genai.Client(vertexai=True, project=project_id, location=location)
-        logger.info(f"Evaluator initialized with {len(self.test_cases)} test cases.")
+        logger.debug(f"Evaluator initialized with {len(self.test_cases)} test cases.")
 
     def _load_and_flatten_test_cases(self, path: str) -> List[Dict[str, Any]]:
         """Loads the audio mapping and flattens it into a simple list of tests."""
@@ -171,7 +175,7 @@ class AudioFunctionCallEvaluator:
             progress = f"[{self.test_counter}/{self.total_tests}]"
             
             try:
-                logger.info(f"{progress} Testing: {test_case['file_path']}")
+                logger.debug(f"{progress} Testing: {test_case['file_path']}")
                 
                 # Apply timeout to the entire test processing
                 result = await asyncio.wait_for(
@@ -323,10 +327,10 @@ class AudioFunctionCallEvaluator:
         logger.info("="*60)
         logger.info("STARTING FUNCTION CALL EVALUATION")
         logger.info("="*60)
-        logger.info(f"Model: {TARGET_MODEL_FOR_EVAL}")
-        logger.info(f"Total tests: {self.total_tests}")
-        logger.info(f"Max concurrent tests: {self.max_concurrent_tests}")
-        logger.info(f"Test timeout: {TEST_TIMEOUT}s per test")
+        logger.debug(f"Model: {TARGET_MODEL_FOR_EVAL}")
+        logger.debug(f"Total tests: {self.total_tests}")
+        logger.debug(f"Max concurrent tests: {self.max_concurrent_tests}")
+        logger.debug(f"Test timeout: {TEST_TIMEOUT}s per test")
         logger.info("-"*60)
         
         semaphore = asyncio.Semaphore(self.max_concurrent_tests)
@@ -395,8 +399,8 @@ class AudioFunctionCallEvaluator:
             csv_file = output_path / "evaluation_results.csv"
             self._save_results_as_csv(detailed_results, str(csv_file))
             
-            logger.info(f"Detailed results saved to: {json_file}")
-            logger.info(f"CSV results saved to: {csv_file}")
+            logger.debug(f"Detailed results saved to: {json_file}")
+            logger.debug(f"CSV results saved to: {csv_file}")
         
         # Print comprehensive summary
         logger.info("="*60)
@@ -404,8 +408,8 @@ class AudioFunctionCallEvaluator:
         logger.info("="*60)
         logger.info(f"Overall Accuracy Score: {accuracy:.2%}")
         logger.info(f"Success rate: {passed_count}/{total_tests} tests passed ({accuracy:.1%})")
-        logger.info(f"Total execution time: {execution_time:.2f} seconds")
-        logger.info(f"Average time per test: {detailed_results['average_time_per_test']:.2f} seconds")
+        logger.debug(f"Total execution time: {execution_time:.2f} seconds")
+        logger.debug(f"Average time per test: {detailed_results['average_time_per_test']:.2f} seconds")
         
         if timeout_count > 0:
             logger.warning(f"⏰ Timeout tests: {timeout_count}")
@@ -423,14 +427,14 @@ class AudioFunctionCallEvaluator:
                 logger.info(f"  - {test.get('file_path', 'unknown')}: {test['comparison']['message']}")
         
         if timeout_tests:
-            logger.info(f"\n⏰ TIMEOUT TESTS ({len(timeout_tests)}):")
+            logger.debug(f"\n⏰ TIMEOUT TESTS ({len(timeout_tests)}):")
             for test in timeout_tests:
-                logger.info(f"  - {test.get('file_path', 'unknown')}: {test['comparison']['message']}")
+                logger.debug(f"  - {test.get('file_path', 'unknown')}: {test['comparison']['message']}")
         
         if error_tests:
-            logger.info(f"\n💥 ERROR TESTS ({len(error_tests)}):")
+            logger.debug(f"\n💥 ERROR TESTS ({len(error_tests)}):")
             for test in error_tests:
-                logger.info(f"  - {test.get('file_path', 'unknown')}: {test['comparison']['message']}")
+                logger.debug(f"  - {test.get('file_path', 'unknown')}: {test['comparison']['message']}")
         
         logger.info("="*60)
         

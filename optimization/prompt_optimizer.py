@@ -17,8 +17,12 @@ from google import genai
 # Note: Other imports moved to where they're needed to avoid import issues in standalone mode
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Suppress verbose logging from external libraries
+logging.getLogger('google_genai.live').setLevel(logging.WARNING)
+logging.getLogger('google_genai').setLevel(logging.WARNING)
 
 # Enable DEBUG logging specifically for this module
 # logger.setLevel(logging.DEBUG)
@@ -67,10 +71,10 @@ class PromptOptimizer:
         from configs.model_configs import PROMPT_GENERATION_MODEL
         
         logger.info(f"Optimizer initialized. Results will be saved in: {self.run_folder}")
-        logger.info(f"Using generation model: {PROMPT_GENERATION_MODEL}")
-        logger.info(f"Running {num_iterations} optimization iterations")
+        logger.debug(f"Using generation model: {PROMPT_GENERATION_MODEL}")
+        logger.debug(f"Running {num_iterations} optimization iterations")
         if early_stopping_threshold is not None:
-            logger.info(f"Early stopping enabled: will stop if accuracy exceeds {early_stopping_threshold:.2%}")
+            logger.debug(f"Early stopping enabled: will stop if accuracy exceeds {early_stopping_threshold:.2%}")
 
     def _create_run_folder(self) -> str:
         """Create a timestamped run folder for this optimization session."""
@@ -182,18 +186,18 @@ class PromptOptimizer:
             project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
             location = os.environ.get("GOOGLE_CLOUD_LOCATION")
             
-            logger.info("="*80)
-            logger.info("📝 GENERATING NEW PROMPT WITH OPTIMIZATION MODEL")
-            logger.info("="*80)
-            logger.info(f"Model: {PROMPT_GENERATION_MODEL}")
-            logger.info(f"Project: {project_id}, Location: {location}")
-            logger.info(f"Metaprompt length: {len(metaprompt)} characters")
-            logger.info("-"*80)
+            logger.debug("="*80)
+            logger.debug("📝 GENERATING NEW PROMPT WITH OPTIMIZATION MODEL")
+            logger.debug("="*80)
+            logger.debug(f"Model: {PROMPT_GENERATION_MODEL}")
+            logger.debug(f"Project: {project_id}, Location: {location}")
+            logger.debug(f"Metaprompt length: {len(metaprompt)} characters")
+            logger.debug("-"*80)
             
-            logger.info("📋 METAPROMPT BEING SENT TO MODEL:")
-            logger.info("-"*80)
-            logger.info(metaprompt)
-            logger.info("-"*80)
+            logger.debug("📋 METAPROMPT BEING SENT TO MODEL:")
+            logger.debug("-"*80)
+            logger.debug(metaprompt)
+            logger.debug("-"*80)
             
             client = genai.Client(
                 vertexai=True,
@@ -202,7 +206,7 @@ class PromptOptimizer:
             )
             
             # Make async call using the correct API pattern
-            logger.info("⏳ Making API call to optimization model...")
+            logger.debug("⏳ Making API call to optimization model...")
             response = await client.aio.models.generate_content(
                 model=PROMPT_GENERATION_MODEL,
                 contents=metaprompt,
@@ -210,39 +214,39 @@ class PromptOptimizer:
                 # generation_config=PROMPT_GENERATION_CONFIG
             )
             
-            logger.info("✅ API call completed successfully")
+            logger.debug("✅ API call completed successfully")
             
             # Extract full response
             response_text = response.text if hasattr(response, 'text') else str(response)
             
-            logger.info("="*80)
-            logger.info("🤖 MODEL'S COMPLETE RESPONSE:")
-            logger.info("="*80)
-            logger.info(response_text)
-            logger.info("="*80)
+            logger.debug("="*80)
+            logger.debug("🤖 MODEL'S COMPLETE RESPONSE:")
+            logger.debug("="*80)
+            logger.debug(response_text)
+            logger.debug("="*80)
             
             # Extract prompt from response using regex
             match = re.search(r'\[\[(.*?)\]\]', response_text, re.DOTALL)
             if match:
                 generated_prompt = match.group(1).strip()
                 
-                logger.info("🎯 EXTRACTED NEW PROMPT:")
-                logger.info("-"*80)
-                logger.info(generated_prompt)
-                logger.info("-"*80)
+                logger.debug("🎯 EXTRACTED NEW PROMPT:")
+                logger.debug("-"*80)
+                logger.debug(generated_prompt)
+                logger.debug("-"*80)
                 logger.info(f"✅ Generated prompt length: {len(generated_prompt)} characters")
                 
                 return generated_prompt
             else:
                 logger.warning("⚠️  Could not extract a new prompt from the model's response. Retrying.")
-                logger.info("❌ RESPONSE PARSING FAILED - No [[...]] format found")
+                logger.debug("❌ RESPONSE PARSING FAILED - No [[...]] format found")
                 raise ValueError("No prompt found in [[...]] format")
                 
         except Exception as e:
             logger.error(f"💥 Error generating new prompt: {e}")
-            logger.error(f"Error type: {type(e).__name__}")
+            logger.debug(f"Error type: {type(e).__name__}")
             import traceback
-            logger.error(f"Full traceback: {traceback.format_exc()}")
+            logger.debug(f"Full traceback: {traceback.format_exc()}")
             raise
 
     async def _save_iteration_results(self, iteration: int, prompt: str, score: float, details: Dict[Any, Any]):
@@ -364,81 +368,74 @@ class PromptOptimizer:
         return queries
 
     def _update_score_history(self, iteration: int, overall_accuracy: float, query_breakdown: str):
-        """Update the score history summary file with latest results."""
+        """
+        Updates the score history summary file with latest results.
+        Maintains a CSV-like format showing performance across all iterations.
+        """
         score_history_file = os.path.join(self.run_folder, 'score_history_summary.txt')
         
-        # Parse current query breakdown
-        query_data = self._parse_query_breakdown_for_history(query_breakdown)
-        
-        # Read existing query data from prompt_history.txt to get complete historical data
+        # Load existing results to maintain history
         all_results = []
-        try:
-            with open(self.prompt_history_file, 'r', encoding='utf-8') as f:
+        if os.path.exists(score_history_file):
+            with open(score_history_file, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
-            # Parse all historical results from prompt_history.txt
-            pattern = re.compile(
-                r'<PROMPT>\n<ITERATION>\n(.*?)\n</ITERATION>\n'
-                r'<PROMPT_TEXT>\n(.*?)\n</PROMPT_TEXT>\n'
-                r'<OVERALL_ACCURACY>\n(.*?)\n</OVERALL_ACCURACY>\n'
-                r'<QUERY_BREAKDOWN>\n(.*?)\n</QUERY_BREAKDOWN>\n'
-                r'<FAILING_EXAMPLES>\n(.*?)\n</FAILING_EXAMPLES>\n</PROMPT>', 
-                re.DOTALL
-            )
-            
-            matches = pattern.findall(content)
-            for i, (iteration_info, prompt_text, accuracy_str, breakdown_text, examples_text) in enumerate(matches):
-                try:
-                    overall_acc = float(accuracy_str.strip())
-                    query_breakdown_data = self._parse_query_breakdown_for_history(breakdown_text)
-                    
+                # Parse existing iterations from the content
+                import re
+                matches = re.findall(r'Iteration (\d+): ([\d.]+)%', content)
+                for match in matches:
                     all_results.append({
-                        'iteration': i,
-                        'overall_accuracy': overall_acc,
-                        'query_breakdown': query_breakdown_data
+                        'iteration': int(match[0]),
+                        'score': float(match[1]) / 100.0
                     })
-                except (ValueError, AttributeError):
-                    continue
-                    
-        except FileNotFoundError:
-            # If no history file yet, just use current result
-            all_results = [{
-                'iteration': iteration,
-                'overall_accuracy': overall_accuracy,
-                'query_breakdown': query_data
-            }]
         
-        if not all_results:
-            return
+        # Add current result
+        current_result = {
+            'iteration': iteration,
+            'score': overall_accuracy,
+            'query_breakdown': self._parse_query_breakdown_for_history(query_breakdown)
+        }
         
-        # Get all unique queries across all iterations
-        all_queries = set()
+        # Update or add current iteration
+        existing_idx = None
+        for i, result in enumerate(all_results):
+            if result['iteration'] == iteration:
+                existing_idx = i
+                break
+        
+        if existing_idx is not None:
+            all_results[existing_idx] = current_result
+        else:
+            all_results.append(current_result)
+        
+        # Sort by iteration
+        all_results.sort(key=lambda x: x['iteration'])
+        
+        # Collect all unique queries for the breakdown table
+        all_queries = []
         for result in all_results:
             if result.get('query_breakdown'):
-                all_queries.update(result['query_breakdown'].keys())
-        all_queries = sorted(all_queries)
+                for query in result['query_breakdown'].keys():
+                    if query not in all_queries:
+                        all_queries.append(query)
         
-        # Generate simplified summary - only the 3 sections requested
+        # Generate summary content
         summary_lines = [
-            f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"Completed iterations: {len(all_results)}",
-            ""
+            "OPTIMIZATION SCORE HISTORY",
+            "=" * 80,
+            "",
+            "OVERALL ACCURACY BY ITERATION:",
+            "-" * 40
         ]
         
-        # Overall accuracy progression (without status column)
-        summary_lines.extend([
-            "OVERALL ACCURACY PROGRESSION:",
-            "-" * 40,
-            f"{'Iter':<4} {'Overall':<8}"
-        ])
-        
-        summary_lines.append("-" * 15)
-        
         for result in all_results:
-            row = f"{result['iteration']:<4} {result['overall_accuracy']:<8.1%}"
-            summary_lines.append(row)
+            iteration_label = "INITIAL" if result['iteration'] == 0 else f"ITER {result['iteration']}"
+            summary_lines.append(f"  {iteration_label:<8}: {result['score']:.1%}")
         
-        summary_lines.append("")
+        summary_lines.extend([
+            "",
+            f"BEST SCORE: {max(r['score'] for r in all_results):.1%}",
+            ""
+        ])
         
         # Query-level performance across all iterations (without legend)
         if all_queries:
@@ -483,7 +480,7 @@ class PromptOptimizer:
         with open(score_history_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(summary_lines))
         
-        logger.info(f"Updated score history: {score_history_file}")
+        logger.debug(f"Updated score history: {score_history_file}")
 
     async def run(self) -> Tuple[str, float]:
         """
@@ -495,9 +492,9 @@ class PromptOptimizer:
         logger.info("="*80)
         logger.info("STARTING PROMPT OPTIMIZATION")
         logger.info("="*80)
-        logger.info(f"Initial prompt length: {len(self.starting_prompt)} characters")
-        logger.info(f"Optimization iterations: {self.num_iterations}")
-        logger.info(f"Results directory: {self.run_folder}")
+        logger.debug(f"Initial prompt length: {len(self.starting_prompt)} characters")
+        logger.debug(f"Optimization iterations: {self.num_iterations}")
+        logger.debug(f"Results directory: {self.run_folder}")
         logger.info("-"*80)
         
         for i in range(self.num_iterations + 1):  # +1 to include the initial prompt
@@ -515,14 +512,14 @@ class PromptOptimizer:
                 try:
                     metaprompt = self._update_metaprompt()
                     current_prompt = await self._generate_new_prompt(metaprompt)
-                    logger.info(f"Generated prompt length: {len(current_prompt)} characters")
+                    logger.debug(f"Generated prompt length: {len(current_prompt)} characters")
                 except Exception as e:
                     logger.error(f"Failed to generate new prompt after retries: {e}. Skipping iteration.")
                     continue
 
             # Evaluate the current prompt
             logger.info(f"Evaluating prompt for iteration {i}...")
-            logger.info("-"*40)
+            logger.debug("-"*40)
             
             try:
                 # Create iteration-specific output directory for detailed results
@@ -534,7 +531,7 @@ class PromptOptimizer:
                     output_dir=iteration_folder
                 )
                 
-                logger.info("-"*40)
+                logger.debug("-"*40)
                 logger.info(f"Iteration {i} completed - Score: {score:.2%}")
                 
                 # Save iteration results
@@ -559,7 +556,7 @@ class PromptOptimizer:
                 # Update score history summary
                 self._update_score_history(i, score, query_breakdown)
 
-                                # Check if this is a new best
+                # Check if this is a new best
                 if score > self.best_prompt["score"]:
                     improvement = score - self.best_prompt["score"]
                     logger.info(f"🎉 NEW BEST SCORE! {score:.2%} (improved by {improvement:.2%})")
@@ -600,10 +597,10 @@ class PromptOptimizer:
         if self.early_stopping_threshold is not None and self.best_prompt['score'] >= self.early_stopping_threshold:
             logger.info(f"🎯 Early stopping threshold of {self.early_stopping_threshold:.2%} was reached!")
         logger.info(f"All results saved in: {self.run_folder}")
-        logger.info("\nBest prompt text:")
-        logger.info("-"*40)
-        logger.info(self.best_prompt['text'])
-        logger.info("-"*40)
+        logger.debug("\nBest prompt text:")
+        logger.debug("-"*40)
+        logger.debug(self.best_prompt['text'])
+        logger.debug("-"*40)
         
         return self.best_prompt['text'], self.best_prompt['score']
 

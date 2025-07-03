@@ -1,9 +1,14 @@
 import os
 import json
 import asyncio
+import logging
+import sys
 from google import genai
 from typing import List, Dict
 from dotenv import load_dotenv
+
+# Add the parent directory to Python path to find the configs module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv()
 
@@ -25,9 +30,16 @@ client = genai.Client(
     location=os.environ.get("GOOGLE_CLOUD_LOCATION"),
 )
 
+# --- Logging Configuration ---
+logger = logging.getLogger(__name__)
+
+# Suppress verbose logging from external libraries
+logging.getLogger('google_genai.live').setLevel(logging.WARNING)
+logging.getLogger('google_genai').setLevel(logging.WARNING)
+
 async def _restate_single_query(query: str) -> List[str]:
     """Helper function to restate one query using Gemini."""
-    prompt = f"""Please restate the following user query for a financial voice assistant in {NUM_RESTATEMENTS} different ways.
+    prompt = f"""Please restate the following user query for an AI voice assistant in {NUM_RESTATEMENTS} different ways.
     The goal is to create a diverse set of test cases.
 
     Guidelines:
@@ -47,8 +59,15 @@ async def _restate_single_query(query: str) -> List[str]:
         restatements = [line.strip() for line in response.text.split('\n') if line.strip()]
         return restatements[:NUM_RESTATEMENTS]
     except Exception as e:
-        print(f"Error generating restatements for query '{query}': {e}")
-        return []
+        logger.error(f"Error generating restatements for query '{query}': {e}")
+        # Return a fallback result if the API fails
+        return [
+            f"Could you tell me {query.lower()}",
+            f"I'd like to know {query.lower()}",
+            f"Please help me with: {query.lower()}",
+            f"Can you provide information about {query.lower()}",
+            f"I need to find out {query.lower()}"
+        ]
 
 async def _process_batch(query_batch: List[Dict]) -> List[Dict]:
     """Processes a batch of queries concurrently."""
@@ -69,24 +88,38 @@ async def _process_batch(query_batch: List[Dict]) -> List[Dict]:
     return results
 
 async def generate_restated_queries():
-    """Processes queries from the input file and saves restatements to an intermediate file."""
+    """
+    Step 1: Generates diverse restatements for each base query.
+    """
     try:
-        with open(INPUT_FILE, 'r') as f:
-            input_data = json.load(f)
-
-        queries = input_data['queries']
-        all_results = []
-        for i in range(0, len(queries), MAX_CONCURRENT_REQUESTS):
-            batch = queries[i:i + MAX_CONCURRENT_REQUESTS]
-            batch_results = await _process_batch(batch)
-            all_results.extend(batch_results)
-
-        with open(OUTPUT_FILE, 'w') as f:
-            json.dump({"queries": all_results}, f, indent=2)
-
+        with open(INPUT_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        results = []
+        restater = QueryRestater()
+        
+        for i, entry in enumerate(data['queries']):
+            query = entry['original_query']
+            logger.info(f"Processing query {i+1}/{len(data['queries'])}: '{query}'")
+            
+            restatements = await restater.generate_restatements(query)
+            
+            results.append({
+                "query_id": i + 1,
+                "original_query": query,
+                "expected_function": entry.get("expected_function"),
+                "restatements": restatements
+            })
+        
+        # Save to intermediate output file
+        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Generated restatements saved to: {OUTPUT_FILE}")
+        
     except FileNotFoundError:
-        print(f"Error: Input file '{INPUT_FILE}' not found.")
+        logger.error(f"Input file '{INPUT_FILE}' not found.")
         raise
     except Exception as e:
-        print(f"Error in generate_restated_queries: {e}")
+        logger.error(f"Error in generate_restated_queries: {e}")
         raise

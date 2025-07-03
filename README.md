@@ -305,6 +305,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## ⚠️ Disclaimer
 
-This is a personal project by Heiko Hotz to explore Gemini capabilities and agent interoperability. Suggestions and feedback are welcome via Issues or Pull Requests.
+This is a personal project by Heiko Hotz to explore Gemini Live API prompt optimisation.
 
 **This project is developed independently and does not reflect the views or efforts of Google.**

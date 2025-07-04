@@ -21,7 +21,6 @@ INPUT_FILE = "data_generation/output_queries.json"  # Reads the intermediate fil
 OUTPUT_DIR = "audio_test_suite"     # Main output directory
 MAPPING_FILE = os.path.join(OUTPUT_DIR, "audio_mapping.json") # The final, important output
 
-# Available English voices and dialects, EXACTLY as in the original project
 VOICE_CONFIGS = [
     # US English voices
     {"name": "en-US-Chirp3-HD-Charon", "dialect": "en-US"},

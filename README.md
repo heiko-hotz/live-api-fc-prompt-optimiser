@@ -11,6 +11,20 @@ This project showcases how AI can automatically optimize AI system prompts by:
 4. **Evaluating function calling accuracy** across diverse scenarios and speaking styles
 5. **Providing detailed analytics** with early stopping when performance targets are met
 
+## 🏗️ Architecture Overview
+
+![Voice AI Prompt Optimizer Architecture](assets/voice_ai_prompt_optimizer.png)
+
+The optimization process follows a systematic approach with numbered steps:
+1. **Query Restatement**: Transform input queries into diverse variations
+2. **Text-to-Speech**: Generate realistic audio test cases
+3. **API Testing**: Evaluate responses using the live API
+4. **Function Call Evaluation**: Assess accuracy of function calls
+5. **Score Calculation**: Compute performance metrics
+6. **Score History**: Track optimization progress
+7. **Meta-Prompt**: Use learning to generate better prompts
+8. **Iterative Improvement**: Repeat until target accuracy is achieved
+
 ## 🎬 Demo Scenario
 
 The demo uses a generic **virtual assistant** that can:
@@ -22,7 +36,7 @@ The demo uses a generic **virtual assistant** that can:
 **Starting Point**: A comprehensive initial prompt with baseline accuracy
 **Goal**: Automatically improve to 90%+ accuracy through iterative optimization
 
-## 🏗️ Project Structure
+## 📁 Project Structure
 
 ```
 voice-assistant-prompt-optimization/

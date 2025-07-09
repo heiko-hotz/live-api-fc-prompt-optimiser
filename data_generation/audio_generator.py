@@ -17,7 +17,7 @@ from google.api_core import exceptions as google_exceptions
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Configuration
-INPUT_FILE = "data_generation/output_queries.json"  # Reads the intermediate file
+INPUT_FILE = "data_generation/rephrased_queries.json"  # Reads the intermediate file
 OUTPUT_DIR = "audio_test_suite"     # Main output directory
 MAPPING_FILE = os.path.join(OUTPUT_DIR, "audio_mapping.json") # The final, important output
 

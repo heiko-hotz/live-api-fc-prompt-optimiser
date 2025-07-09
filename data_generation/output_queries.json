@@ -1,14 +1,15 @@
 {
   "queries": [
     {
+      "query_id": 1,
       "original_query": "What's the weather like today?",
       "trigger_function": true,
       "restatements": [
-        "What is today's weather?",
+        "Tell me the weather for today.",
         "How's it looking outside right now?",
-        "Could you please provide the weather forecast for today?",
-        "Today's weather report.",
-        "Tell me about the current weather conditions."
+        "Could you please give me today's weather forecast?",
+        "What are the current weather conditions?",
+        "Weather report for today."
       ],
       "function_name": "get_information",
       "function_args": {
@@ -16,14 +17,15 @@
       }
     },
     {
+      "query_id": 2,
       "original_query": "Tell me about artificial intelligence",
       "trigger_function": true,
       "restatements": [
         "What is artificial intelligence?",
         "Could you explain artificial intelligence to me, please?",
-        "So, what's AI all about?",
-        "Please provide an overview of artificial intelligence.",
-        "I'd like to learn about artificial intelligence."
+        "Hey, what's up with AI?",
+        "Provide an overview of artificial intelligence.",
+        "I'm interested in learning about artificial intelligence."
       ],
       "function_name": "get_information",
       "function_args": {
@@ -31,14 +33,15 @@
       }
     },
     {
+      "query_id": 3,
       "original_query": "Can you help me with my homework?",
       "trigger_function": true,
       "restatements": [
-        "I need help with my homework assignment.",
-        "Could you please help me understand some concepts I'm studying?",
-        "Hey, I need a hand figuring out this homework problem.",
-        "Walk me through this homework question I'm stuck on.",
-        "Got any tips for my school assignment?"
+        "I need help with my homework.",
+        "Hey, could you give me a hand with this schoolwork?",
+        "Would you be able to assist me with my homework, please?",
+        "I am requesting aid for my academic assignment.",
+        "Provide homework assistance."
       ],
       "function_name": "get_information",
       "function_args": {
@@ -46,14 +49,15 @@
       }
     },
     {
+      "query_id": 4,
       "original_query": "I need to speak to a human please",
       "trigger_function": true,
       "restatements": [
-        "Get me a human.",
-        "Could I please speak with a human representative?",
-        "Can I get a real person on the line?",
-        "I require assistance from a live agent.",
-        "Please connect me with a human."
+        "Connect me to a human.",
+        "Could I please speak with a live representative?",
+        "I really need to talk to a person.",
+        "Please transfer me to a human agent.",
+        "Is it possible to speak to a human, please?"
       ],
       "function_name": "escalate_to_support",
       "function_args": {
@@ -61,14 +65,15 @@
       }
     },
     {
+      "query_id": 5,
       "original_query": "Can I talk to someone?",
       "trigger_function": true,
       "restatements": [
         "I need to speak with a representative.",
-        "Could I please speak to someone from your team?",
-        "Get me a human.",
-        "I wish to be connected with a live agent.",
-        "Is there an option to speak with a person?"
+        "Could you please connect me with a human operator?",
+        "Is there a real person I can chat with?",
+        "I'm having trouble and need to talk to a live agent.",
+        "Connect me to a person."
       ],
       "function_name": "escalate_to_support",
       "function_args": {
@@ -76,14 +81,15 @@
       }
     },
     {
+      "query_id": 6,
       "original_query": "I'm feeling really overwhelmed and don't know what to do",
       "trigger_function": true,
       "restatements": [
-        "I am feeling overwhelmed and need direction.",
-        "This is a lot, and I'm not sure what to do next.",
-        "Could you please help me? I'm feeling quite overwhelmed and need some guidance.",
-        "I find myself in a state of overwhelm and am seeking assistance to determine a path forward.",
-        "Help! I'm completely swamped and don't know my next move."
+        "I'm feeling quite overwhelmed and unsure of what steps to take next.",
+        "Ugh, I'm just totally swamped and have no idea where to even start.",
+        "I'm experiencing a significant feeling of being overwhelmed and am uncertain how to proceed.",
+        "I'm completely overwhelmed right now and I just don't know what my options are.",
+        "I'm at a loss, feeling utterly overwhelmed, and don't know my next move."
       ],
       "function_name": "escalate_to_support",
       "function_args": {
@@ -91,14 +97,15 @@
       }
     },
     {
+      "query_id": 7,
       "original_query": "I'm having a really hard time and could use some help",
       "trigger_function": true,
       "restatements": [
-        "I'm currently facing some difficulties and would be grateful for your assistance.",
-        "Things are pretty rough for me right now, could you give me a hand?",
-        "I am encountering a significant impediment and require assistance.",
-        "I'm struggling quite a bit and need help.",
-        "I'm having a lot of trouble; can you please assist me?"
+        "I'm encountering some significant challenges and require assistance.",
+        "Things are pretty tough for me right now, and I could really use some support.",
+        "Would you be able to provide some help, as I'm finding things quite difficult?",
+        "I'm in a difficult spot and need some help.",
+        "I'm really struggling at the moment and could benefit from some guidance."
       ],
       "function_name": "escalate_to_support",
       "function_args": {
@@ -106,14 +113,15 @@
       }
     },
     {
+      "query_id": 8,
       "original_query": "What time is it?",
       "trigger_function": true,
       "restatements": [
-        "What's the current time?",
-        "Could you please tell me the time?",
-        "What time is it right now?",
-        "Please provide the current time.",
-        "I need to know what time it is."
+        "What's the time?",
+        "Could you please tell me the current time?",
+        "Hey, what time is it right now?",
+        "I need to know what time it is.",
+        "Provide me with the time."
       ],
       "function_name": "get_information",
       "function_args": {
@@ -121,14 +129,15 @@
       }
     },
     {
+      "query_id": 9,
       "original_query": "How do I cook pasta?",
       "trigger_function": true,
       "restatements": [
-        "What are the instructions for cooking pasta?",
-        "How do I whip up some pasta?",
-        "Could you please guide me on how to cook pasta?",
-        "I require the proper methodology for pasta preparation.",
-        "What's the correct process for preparing pasta?"
+        "What's the best way to cook pasta?",
+        "Hey, can you tell me how to make some pasta?",
+        "Could you please explain the steps for cooking pasta?",
+        "I require detailed instructions on pasta preparation.",
+        "Walk me through how to cook pasta."
       ],
       "function_name": "get_information",
       "function_args": {
@@ -136,14 +145,15 @@
       }
     },
     {
+      "query_id": 10,
       "original_query": "Thanks, that's all I needed",
       "trigger_function": false,
       "restatements": [
-        "Thank you, I have everything I need.",
-        "Yep, thanks, I'm good.",
-        "I appreciate your assistance; that's all for now.",
-        "My gratitude, the provided information is sufficient.",
-        "Thank you for your help, I am all set."
+        "Thank you, I have everything I required.",
+        "Yep, that's everything, appreciate it.",
+        "Thank you, that completely fulfills my needs.",
+        "I appreciate your help; that's all the information I needed.",
+        "Perfect, thanks! That was exactly what I was looking for."
       ]
     }
   ]

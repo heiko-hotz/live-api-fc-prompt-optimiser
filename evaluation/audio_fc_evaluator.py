@@ -26,7 +26,7 @@ from google.genai.types import (
 )
 
 # Import model configurations from our central config file
-from configs.model_configs import TARGET_MODEL_FOR_EVAL, TARGET_MODEL_CONFIG
+from configs.model_configs import TARGET_MODEL_FOR_EVAL
 
 # --- Logging Configuration ---
 # Use whitelist approach - only enable DEBUG for our modules

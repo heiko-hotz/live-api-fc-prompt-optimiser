@@ -17,7 +17,7 @@ This document provides comprehensive technical details about the implementation,
 - **Tone diversification** - Generates direct, casual, polite, and formal variations of each query
 - **Prompt structure for restatements**: "Please restate the following user query for a financial voice assistant in 5 different ways"
 - **Concurrent processing** - Batches of 5 queries processed simultaneously for efficiency
-- **Intermediate output**: Saves to `data_generation/output_queries.json` before audio generation
+- **Intermediate output**: Saves to `data_generation/rephrased_queries.json` before audio generation
 
 ### **Audio Generation Process** 
 - **Multi-dialect voice support** - 9 different English voices across US, UK, Australian, and Indian dialects

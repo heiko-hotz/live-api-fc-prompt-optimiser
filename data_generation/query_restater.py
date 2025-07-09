@@ -13,11 +13,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv()
 
 # Import model configurations
-from configs.model_configs import RESTATE_QUERIES_MODEL, RESTATE_QUERIES_CONFIG
+from configs.model_configs import RESTATE_QUERIES_MODEL
 
 # Configuration for file paths
 INPUT_FILE = "configs/input_queries.json"
-OUTPUT_FILE = "data_generation/output_queries.json" # This is a temporary intermediate file
+OUTPUT_FILE = "data_generation/rephrased_queries.json" # This is a temporary intermediate file
 NUM_RESTATEMENTS = 5
 MAX_CONCURRENT_REQUESTS = 5
 
@@ -51,8 +51,7 @@ async def _restate_single_query(query: str) -> List[str]:
     try:
         response = await client.aio.models.generate_content(
             model=RESTATE_QUERIES_MODEL,
-            contents=prompt,
-            # generation_config=RESTATE_QUERIES_CONFIG
+            contents=prompt
         )
         restatements = [line.strip() for line in response.text.split('\n') if line.strip()]
         return restatements[:NUM_RESTATEMENTS]
@@ -67,23 +66,7 @@ async def _restate_single_query(query: str) -> List[str]:
             f"I need to find out {query.lower()}"
         ]
 
-async def _process_batch(query_batch: List[Dict]) -> List[Dict]:
-    """Processes a batch of queries concurrently."""
-    tasks = [asyncio.create_task(_restate_single_query(q['query'])) for q in query_batch]
-    all_restatements = await asyncio.gather(*tasks)
 
-    results = []
-    for query_obj, restatements in zip(query_batch, all_restatements):
-        result = {
-            "original_query": query_obj['query'],
-            "trigger_function": query_obj.get('trigger_function', False),
-            "restatements": restatements
-        }
-        if result['trigger_function']:
-            result['function_name'] = query_obj.get('function_name')
-            result['function_args'] = query_obj.get('function_args')
-        results.append(result)
-    return results
 
 async def generate_restated_queries():
     """
@@ -94,24 +77,29 @@ async def generate_restated_queries():
             data = json.load(f)
         
         results = []
-        restater = QueryRestater()
         
         for i, entry in enumerate(data['queries']):
-            query = entry['original_query']
+            query = entry['query']
             logger.info(f"Processing query {i+1}/{len(data['queries'])}: '{query}'")
             
-            restatements = await restater.generate_restatements(query)
+            restatements = await _restate_single_query(query)
             
-            results.append({
+            result = {
                 "query_id": i + 1,
                 "original_query": query,
-                "expected_function": entry.get("expected_function"),
+                "trigger_function": entry.get('trigger_function', False),
                 "restatements": restatements
-            })
+            }
+            
+            if result['trigger_function']:
+                result['function_name'] = entry.get('function_name')
+                result['function_args'] = entry.get('function_args')
+            
+            results.append(result)
         
         # Save to intermediate output file
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
+            json.dump({"queries": results}, f, indent=2, ensure_ascii=False)
         
         logger.info(f"Generated restatements saved to: {OUTPUT_FILE}")
         

@@ -57,7 +57,7 @@ voice-assistant-prompt-optimization/
 ├── data_generation/
 │   ├── audio_generator.py      # Text-to-speech generation
 │   ├── query_restater.py       # Query variation generation
-│   └── output_queries.json     # Generated query variations (auto-generated)
+│   └── rephrased_queries.json     # Generated query variations (auto-generated)
 ├── evaluation/
 │   └── audio_fc_evaluator.py   # Function call evaluation system
 ├── optimization/

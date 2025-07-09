@@ -1,0 +1,160 @@
+{
+  "queries": [
+    {
+      "query_id": 1,
+      "original_query": "What's the weather like today?",
+      "trigger_function": true,
+      "restatements": [
+        "What is today's weather?",
+        "How's the weather looking out there today?",
+        "Could you please provide today's weather forecast?",
+        "What are the atmospheric conditions expected for today?",
+        "Tell me the weather for today."
+      ],
+      "function_name": "get_information",
+      "function_args": {
+        "query": "What's the weather like today?"
+      }
+    },
+    {
+      "query_id": 2,
+      "original_query": "Tell me about artificial intelligence",
+      "trigger_function": true,
+      "restatements": [
+        "What is artificial intelligence?",
+        "So, what's AI?",
+        "Could you please give me some information on artificial intelligence?",
+        "Please describe artificial intelligence.",
+        "I'd like to learn about artificial intelligence."
+      ],
+      "function_name": "get_information",
+      "function_args": {
+        "query": "Tell me about artificial intelligence"
+      }
+    },
+    {
+      "query_id": 3,
+      "original_query": "Can you help me with my homework?",
+      "trigger_function": true,
+      "restatements": [
+        "I need help with my homework.",
+        "Hey, could you give me a hand with my homework?",
+        "Would you be able to assist me with my homework, please?",
+        "I am seeking assistance with my homework assignment.",
+        "I'm having some trouble with my homework and could use your guidance."
+      ],
+      "function_name": "get_information",
+      "function_args": {
+        "query": "Can you help me with my homework?"
+      }
+    },
+    {
+      "query_id": 4,
+      "original_query": "I need to speak to a human please",
+      "trigger_function": true,
+      "restatements": [
+        "Connect me with a human operator.",
+        "Could you please transfer me to a live agent?",
+        "Is there a way I can talk to an actual person?",
+        "I need to speak with a human representative.",
+        "I require speaking with a human."
+      ],
+      "function_name": "escalate_to_support",
+      "function_args": {
+        "reason": "human-request"
+      }
+    },
+    {
+      "query_id": 5,
+      "original_query": "Can I talk to someone?",
+      "trigger_function": true,
+      "restatements": [
+        "I need to speak with a representative.",
+        "Is there someone I can chat with?",
+        "Could I please be connected to an agent?",
+        "I wish to confer with a human operator.",
+        "I'd like to talk to a real person."
+      ],
+      "function_name": "escalate_to_support",
+      "function_args": {
+        "reason": "human-request"
+      }
+    },
+    {
+      "query_id": 6,
+      "original_query": "I'm feeling really overwhelmed and don't know what to do",
+      "trigger_function": true,
+      "restatements": [
+        "I'm overwhelmed and need help knowing what to do.",
+        "Man, I'm totally swamped and have no idea what to do next.",
+        "I'm feeling quite overwhelmed and would appreciate some guidance on how to proceed.",
+        "I am currently experiencing a state of considerable overwhelm and require assistance in determining an appropriate course of action.",
+        "Everything feels like too much right now, and I just don't know what to do."
+      ],
+      "function_name": "escalate_to_support",
+      "function_args": {
+        "reason": "vulnerable-user"
+      }
+    },
+    {
+      "query_id": 7,
+      "original_query": "I'm having a really hard time and could use some help",
+      "trigger_function": true,
+      "restatements": [
+        "I'm really struggling and need some help.",
+        "Things are pretty tough right now, could you give me a hand?",
+        "I'm experiencing a challenging situation and would appreciate your assistance.",
+        "Could you please help me? I'm having a very difficult time.",
+        "I find myself in a hard spot and require some support."
+      ],
+      "function_name": "escalate_to_support",
+      "function_args": {
+        "reason": "vulnerable-user"
+      }
+    },
+    {
+      "query_id": 8,
+      "original_query": "What time is it?",
+      "trigger_function": true,
+      "restatements": [
+        "Tell me the time.",
+        "Could you please tell me the current time?",
+        "Hey, what's the time?",
+        "I'd like to know the time.",
+        "Do you know what time it is?"
+      ],
+      "function_name": "get_information",
+      "function_args": {
+        "query": "What time is it?"
+      }
+    },
+    {
+      "query_id": 9,
+      "original_query": "How do I cook pasta?",
+      "trigger_function": true,
+      "restatements": [
+        "Tell me how to prepare pasta.",
+        "Hey, can you walk me through cooking pasta?",
+        "Please provide a step-by-step guide for cooking pasta.",
+        "I'd like to learn the process for cooking pasta.",
+        "What's the best way to cook pasta?"
+      ],
+      "function_name": "get_information",
+      "function_args": {
+        "query": "How do I cook pasta?"
+      }
+    },
+    {
+      "query_id": 10,
+      "original_query": "Thanks, that's all I needed",
+      "trigger_function": false,
+      "restatements": [
+        "That's all for me, thanks.",
+        "Awesome, I'm all set, appreciate it!",
+        "Thank you, that's everything I needed.",
+        "My requirements have been met, thank you.",
+        "Perfect, no further assistance is required."
+      ]
+    }
+  ]
+}

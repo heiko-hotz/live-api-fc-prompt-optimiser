@@ -367,6 +367,85 @@ class PromptOptimizer:
         
         return queries
 
+    def _parse_existing_query_breakdown(self, content: str, all_results: list):
+        """
+        Parse the existing query breakdown table from score history content
+        and add query_breakdown data to all_results.
+        """
+        import re
+        
+        # Find the query performance table section
+        table_match = re.search(r'QUERY PERFORMANCE ACROSS ITERATIONS:.*?\n(.*?)(?=\n\n|\Z)', content, re.DOTALL)
+        if not table_match:
+            return
+        
+        table_content = table_match.group(1)
+        lines = table_content.strip().split('\n')
+        
+        # Find the header line to extract iteration numbers
+        header_line = None
+        for line in lines:
+            if 'Iter' in line and 'Query' in line:
+                header_line = line
+                break
+        
+        if not header_line:
+            return
+        
+        # Parse iteration numbers from header
+        # Format: "ID       Query                               Iter 0    1   "
+        iteration_matches = re.findall(r'(\d+)', header_line)
+        if not iteration_matches:
+            return
+        
+        iteration_numbers = [int(x) for x in iteration_matches]
+        
+        # Parse each query row
+        for line in lines:
+            if line.startswith('query_'):
+                # Format: "query_1  What's the weather like today?      %    --   100 "
+                parts = line.split()
+                if len(parts) < 4:
+                    continue
+                
+                query_id = parts[0]
+                
+                # Extract the query text (everything between query_id and the % marker)
+                # Find the position of the % marker
+                percent_pos = line.find('%')
+                if percent_pos == -1:
+                    continue
+                
+                # Extract query text between query_id and %
+                query_text_start = len(query_id)
+                query_text = line[query_text_start:percent_pos].strip()
+                
+                # Extract the performance values after the % marker
+                values_part = line[percent_pos + 1:].strip()
+                values = values_part.split()
+                
+                # Match values to iterations
+                for i, value in enumerate(values):
+                    if i < len(iteration_numbers):
+                        iteration_num = iteration_numbers[i]
+                        
+                        # Find the corresponding result in all_results
+                        for result in all_results:
+                            if result['iteration'] == iteration_num:
+                                if 'query_breakdown' not in result:
+                                    result['query_breakdown'] = {}
+                                
+                                # Only add if it's not "--" (missing data)
+                                if value != '--':
+                                    try:
+                                        percentage = int(value)
+                                        result['query_breakdown'][query_text] = {
+                                            'percentage': percentage
+                                        }
+                                    except ValueError:
+                                        # Skip invalid values
+                                        pass
+
     def _update_score_history(self, iteration: int, overall_accuracy: float, query_breakdown: str):
         """
         Updates the score history summary file with latest results.
@@ -381,12 +460,21 @@ class PromptOptimizer:
                 content = f.read()
                 # Parse existing iterations from the content
                 import re
-                matches = re.findall(r'Iteration (\d+): ([\d.]+)%', content)
+                # Match both "INITIAL" and "ITER X" patterns
+                matches = re.findall(r'  (INITIAL|ITER (\d+))\s*:\s*([\d.]+)%', content)
                 for match in matches:
+                    if match[0] == 'INITIAL':
+                        iteration_num = 0
+                    else:
+                        iteration_num = int(match[1])
+                    
                     all_results.append({
-                        'iteration': int(match[0]),
-                        'score': float(match[1]) / 100.0
+                        'iteration': iteration_num,
+                        'score': float(match[2]) / 100.0
                     })
+                
+                # Parse existing query breakdown table if it exists
+                self._parse_existing_query_breakdown(content, all_results)
         
         # Add current result
         current_result = {
@@ -410,12 +498,33 @@ class PromptOptimizer:
         # Sort by iteration
         all_results.sort(key=lambda x: x['iteration'])
         
-        # Collect all unique queries for the breakdown table
+        # Collect all unique queries for the breakdown table with proper matching
         all_queries = []
+        query_mapping = {}  # Maps normalized query -> canonical query text
+        
         for result in all_results:
             if result.get('query_breakdown'):
                 for query in result['query_breakdown'].keys():
-                    if query not in all_queries:
+                    # Normalize query for matching (remove ellipsis, extra spaces)
+                    normalized = query.strip().rstrip('...').strip()
+                    
+                    # Check if this query matches any existing query
+                    matched = False
+                    for existing_norm, existing_canonical in query_mapping.items():
+                        if (normalized == existing_norm or 
+                            normalized.startswith(existing_norm) or 
+                            existing_norm.startswith(normalized)):
+                            # Use the longer, more complete version as canonical
+                            if len(query) > len(existing_canonical):
+                                query_mapping[existing_norm] = query
+                                # Update in all_queries list
+                                idx = all_queries.index(existing_canonical)
+                                all_queries[idx] = query
+                            matched = True
+                            break
+                    
+                    if not matched:
+                        query_mapping[normalized] = query
                         all_queries.append(query)
         
         # Generate summary content
@@ -464,13 +573,28 @@ class PromptOptimizer:
                 row = f"{query_id:<8} {query_display:<35} {'%':<4}"
                 
                 for result in all_results:
-                    if result.get('query_breakdown') and query in result['query_breakdown']:
-                        query_info = result['query_breakdown'][query]
-                        percentage = query_info['percentage']
+                    if result.get('query_breakdown'):
+                        # Find matching query using normalization
+                        matched_query = None
+                        query_normalized = query.strip().rstrip('...').strip()
                         
-                        # Remove status indicators - just show percentage
-                        cell = f"{percentage:2d}"
-                        row += f" {cell:<4}"
+                        for result_query in result['query_breakdown'].keys():
+                            result_normalized = result_query.strip().rstrip('...').strip()
+                            if (query_normalized == result_normalized or 
+                                query_normalized.startswith(result_normalized) or 
+                                result_normalized.startswith(query_normalized)):
+                                matched_query = result_query
+                                break
+                        
+                        if matched_query:
+                            query_info = result['query_breakdown'][matched_query]
+                            percentage = query_info['percentage']
+                            
+                            # Remove status indicators - just show percentage
+                            cell = f"{percentage:2d}"
+                            row += f" {cell:<4}"
+                        else:
+                            row += f" {'--':<4}"
                     else:
                         row += f" {'--':<4}"
                 
